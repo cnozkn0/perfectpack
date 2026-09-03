@@ -20,8 +20,8 @@
   --shadow: 0 10px 24px rgba(74, 52, 40, 0.14);
   --shadow-sm: 0 4px 10px rgba(74, 52, 40, 0.12);
   --radius: 22px;
-  --pack-w: 300px;
-  --pack-h: 260px;
+  --pack-w: 280px;
+  --pack-h: 230px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
@@ -235,6 +235,68 @@ ul {
   color: var(--sage);
 }
 
+/* ——— Box picker ——— */
+.box-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.box-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-height: 52px;
+  min-width: 0;
+  padding: 7px 4px;
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
+  border: 2px solid transparent;
+}
+
+.box-choice.is-selected {
+  background: linear-gradient(180deg, #f3ddc0 0%, #e4c49a 100%);
+  border-color: var(--terracotta);
+  box-shadow:
+    0 0 0 1px rgba(212, 106, 76, 0.25),
+    var(--shadow-sm);
+}
+
+.box-choice-size {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.box-choice-price {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--terracotta-deep);
+}
+
+.box-choice.is-selected .box-choice-price {
+  color: var(--ink);
+}
+
+.box-picker.is-locked {
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+.box-size-tag {
+  display: block;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: rgba(74, 52, 40, 0.55);
+  line-height: 16px;
+}
+
 /* ——— Packing table ——— */
 .table {
   flex: 1;
@@ -290,7 +352,9 @@ ul {
 
 .box-flap-top {
   width: calc(var(--pack-w) + 20px);
+  max-width: 100%;
   height: 16px;
+  transition: width 0.2s ease;
   background: linear-gradient(180deg, #d8ae80, var(--cardboard));
   border-radius: 6px 6px 0 0;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
@@ -310,6 +374,7 @@ ul {
   overflow: hidden;
   touch-action: none;
   border-radius: 4px;
+  transition: width 0.2s ease, height 0.2s ease;
   background:
     repeating-linear-gradient(
       90deg,
@@ -776,6 +841,11 @@ ul {
   color: #8a5a16;
 }
 
+.rewards .space-master {
+  background: #e4f0e7;
+  color: #3d6b4f;
+}
+
 .rewards .hidden {
   display: none;
 }
@@ -791,6 +861,11 @@ ul {
 
   .order-card h1 {
     font-size: 17px;
+  }
+
+  .box-choice {
+    min-height: 44px;
+    padding: 5px 4px;
   }
 
   .shelf {

@@ -16,12 +16,9 @@
     GOOD_MIN: 60,
     PERFECT_MONEY_BONUS: 50,
     PERFECT_XP_BONUS: 20,
+    SPACE_MASTER_MONEY: 30,
+    SPACE_MASTER_XP: 15,
     SOUND_STORAGE_KEY: "perfect-pack-sound",
-    BOX_SIZES: {
-      S: { id: "S", label: "Small", width: 300, height: 260 },
-      M: { id: "M", label: "Medium", width: 340, height: 300 },
-      L: { id: "L", label: "Large", width: 360, height: 340 },
-    },
   };
 
   // ===========================================================================
@@ -35,20 +32,58 @@
   };
 
   // ===========================================================================
+  // BOX_TYPES
+  // Inner packing size in CSS pixels. cost / shippingMultiplier sit in
+  // gameState for a later economy pass.
+  // ===========================================================================
+  const BOX_TYPES = {
+    small: {
+      id: "small",
+      key: "S",
+      label: "S BOX",
+      width: 220,
+      height: 180,
+      cost: 0.35,
+      shippingMultiplier: 0.9,
+      rank: 0,
+    },
+    medium: {
+      id: "medium",
+      key: "M",
+      label: "M BOX",
+      width: 280,
+      height: 230,
+      cost: 0.6,
+      shippingMultiplier: 1.0,
+      rank: 1,
+    },
+    large: {
+      id: "large",
+      key: "L",
+      label: "L BOX",
+      width: 330,
+      height: 275,
+      cost: 1.0,
+      shippingMultiplier: 1.2,
+      rank: 2,
+    },
+  };
+
+  // ===========================================================================
   // ORDERS
-  // items: product type id → required count. Optional boxSize (S/M/L).
+  // items: product type id → required count. idealBox: small | medium | large
   // ===========================================================================
   const ORDERS = [
-    { items: { candle: 1, mug: 1 } },
-    { items: { tshirt: 1, candle: 1 } },
-    { items: { mug: 2 } },
-    { items: { candle: 2, tshirt: 1 } },
-    { items: { mug: 1, candle: 2 } },
-    { items: { tshirt: 1, mug: 1, candle: 1 } },
-    { items: { tshirt: 2, candle: 1 } },
-    { items: { mug: 2, candle: 2 } },
-    { items: { tshirt: 1, mug: 2, candle: 1 } },
-    { items: { tshirt: 2, mug: 1, candle: 1 } },
+    { id: 1, items: { candle: 1, mug: 1 }, idealBox: "small" },
+    { id: 2, items: { tshirt: 1, candle: 1 }, idealBox: "small" },
+    { id: 3, items: { mug: 2 }, idealBox: "small" },
+    { id: 4, items: { candle: 2, tshirt: 1 }, idealBox: "medium" },
+    { id: 5, items: { mug: 1, candle: 2 }, idealBox: "small" },
+    { id: 6, items: { tshirt: 1, mug: 1, candle: 1 }, idealBox: "medium" },
+    { id: 7, items: { tshirt: 2, candle: 1 }, idealBox: "medium" },
+    { id: 8, items: { mug: 2, candle: 2 }, idealBox: "medium" },
+    { id: 9, items: { tshirt: 1, mug: 2, candle: 1 }, idealBox: "large" },
+    { id: 10, items: { tshirt: 2, mug: 1, candle: 1 }, idealBox: "large" },
   ];
 
   // ===========================================================================
@@ -57,7 +92,9 @@
   const gameState = {
     orderIndex: 0,
     currentOrder: null,
-    boxSizeId: "S",
+    selectedBoxId: "medium",
+    boxCost: BOX_TYPES.medium.cost,
+    shippingMultiplier: BOX_TYPES.medium.shippingMultiplier,
     money: 0,
     xp: 0,
     soundEnabled: true,
@@ -87,6 +124,8 @@
     dom.orderTitle = $("order-title");
     dom.orderCount = $("order-count");
     dom.orderItems = $("order-items");
+    dom.boxPicker = $("box-picker");
+    dom.boxSizeTag = $("box-size-tag");
     dom.box = $("box");
     dom.packArea = $("pack-area");
     dom.shelf = $("shelf");
@@ -103,6 +142,7 @@
     dom.resultMoney = $("result-money");
     dom.resultXp = $("result-xp");
     dom.resultBonus = $("result-bonus");
+    dom.resultSpace = $("result-space");
     dom.nextBtn = $("next-btn");
   }
 
@@ -114,8 +154,22 @@
     return Math.max(min, Math.min(max, n));
   }
 
+  function getSelectedBox() {
+    return BOX_TYPES[gameState.selectedBoxId] || BOX_TYPES.medium;
+  }
+
+  /** Collision / layout still read .width / .height from the selected box. */
   function getBoxSize() {
-    return CONFIG.BOX_SIZES[gameState.boxSizeId] || CONFIG.BOX_SIZES.S;
+    return getSelectedBox();
+  }
+
+  function getIdealBox() {
+    const id = gameState.currentOrder && gameState.currentOrder.idealBox;
+    return BOX_TYPES[id] || BOX_TYPES.medium;
+  }
+
+  function formatBoxPrice(cost) {
+    return "$" + cost.toFixed(2);
   }
 
   function getType(typeId) {
@@ -146,21 +200,70 @@
   // ===========================================================================
   function createOrder() {
     const template = ORDERS[gameState.orderIndex % ORDERS.length];
+    const idealBox = template.idealBox || "medium";
     gameState.currentOrder = {
+      id: template.id,
       number: gameState.orderIndex + 1,
       items: Object.assign({}, template.items),
-      boxSize: template.boxSize || "S",
+      idealBox: idealBox,
     };
-    gameState.boxSizeId = gameState.currentOrder.boxSize;
-    applyBoxSize();
+    applySelectedBox(idealBox, { dumpItems: false });
   }
 
   function applyBoxSize() {
-    const box = getBoxSize();
+    const box = getSelectedBox();
     dom.packArea.style.width = box.width + "px";
     dom.packArea.style.height = box.height + "px";
     document.documentElement.style.setProperty("--pack-w", box.width + "px");
     document.documentElement.style.setProperty("--pack-h", box.height + "px");
+    if (dom.boxSizeTag) {
+      dom.boxSizeTag.textContent = box.key;
+    }
+    if (dom.box) {
+      dom.box.setAttribute("data-size", box.id);
+    }
+  }
+
+  function applySelectedBox(boxId, options) {
+    const box = BOX_TYPES[boxId] || BOX_TYPES.medium;
+    const dumpItems = !options || options.dumpItems !== false;
+    const changed = gameState.selectedBoxId !== box.id;
+
+    gameState.selectedBoxId = box.id;
+    gameState.boxCost = box.cost;
+    gameState.shippingMultiplier = box.shippingMultiplier;
+
+    if (dumpItems && changed) {
+      returnPackedItemsToShelf();
+    }
+
+    applyBoxSize();
+    renderBoxPicker();
+  }
+
+  function selectBox(boxId) {
+    if (gameState.packing) return;
+    if (!BOX_TYPES[boxId]) return;
+    if (gameState.selectedBoxId === boxId) return;
+
+    if (gameState.drag) {
+      const drag = gameState.drag;
+      drag.done = true;
+      restoreLastPosition(drag.product, drag);
+      finishDrag();
+    }
+
+    applySelectedBox(boxId, { dumpItems: true });
+    playSound("place");
+    updatePackButton();
+  }
+
+  function returnPackedItemsToShelf() {
+    gameState.products.forEach(function (product) {
+      if (product.inBox) {
+        returnToShelf(product);
+      }
+    });
   }
 
   function renderOrder() {
@@ -239,20 +342,35 @@
 
     const score = calculatePackScore();
     const perfect = score >= CONFIG.PERFECT_MIN;
+    const spaceMaster = isSpaceMaster();
+    const selected = getSelectedBox();
+    const ideal = getIdealBox();
+    const sizeDelta = selected.rank - ideal.rank;
+
     let money = Math.round(8 + score * 0.42);
     let xp = Math.round(4 + score * 0.16);
+
+    if (sizeDelta > 0) {
+      money = Math.max(1, Math.round(money * (1 - 0.22 * sizeDelta)));
+    }
+    money = Math.max(0, Math.round(money / selected.shippingMultiplier));
+
     if (perfect) {
       money += CONFIG.PERFECT_MONEY_BONUS;
       xp += CONFIG.PERFECT_XP_BONUS;
+    }
+    if (spaceMaster) {
+      money += CONFIG.SPACE_MASTER_MONEY;
+      xp += CONFIG.SPACE_MASTER_XP;
     }
 
     gameState.money += money;
     gameState.xp += xp;
 
-    playSound(perfect ? "perfect" : "complete");
-    if (perfect) spawnConfetti();
+    playSound(perfect || spaceMaster ? "perfect" : "complete");
+    if (perfect || spaceMaster) spawnConfetti();
 
-    showResult(score, money, xp, perfect);
+    showResult(score, money, xp, perfect, spaceMaster);
     renderOrder();
   }
 
@@ -271,6 +389,8 @@
     dom.confetti.innerHTML = "";
     dom.dragLayer.innerHTML = "";
     dom.box.classList.remove("is-hot", "is-invalid");
+    applyBoxSize();
+    renderBoxPicker();
     spawnProducts();
     updatePackButton();
   }
@@ -752,8 +872,6 @@
       return p.inBox;
     });
 
-    const correctScore = 50;
-
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
@@ -769,9 +887,9 @@
     });
     const bboxArea = Math.max(1, (maxX - minX) * (maxY - minY));
     const compactness = clamp(productArea / bboxArea, 0, 1);
-    const efficiencyScore = 30 * clamp((compactness - 0.35) / 0.6, 0, 1);
+    const efficiencyScore = 20 * clamp((compactness - 0.35) / 0.6, 0, 1);
 
-    let gapScore = 20;
+    let gapScore = 15;
     if (placed.length >= 2) {
       let total = 0;
       placed.forEach(function (p) {
@@ -784,10 +902,24 @@
         total += nearest;
       });
       const mean = total / placed.length;
-      gapScore = 20 * (1 - clamp(mean / 42, 0, 1));
+      gapScore = 15 * (1 - clamp(mean / 42, 0, 1));
     }
 
-    return clamp(Math.round(correctScore + efficiencyScore + gapScore), 0, 100);
+    const boxScore = calculateBoxEfficiencyScore();
+    const correctScore = 40;
+
+    return clamp(Math.round(correctScore + efficiencyScore + gapScore + boxScore), 0, 100);
+  }
+
+  function calculateBoxEfficiencyScore() {
+    const delta = getSelectedBox().rank - getIdealBox().rank;
+    if (delta <= 0) return 25;
+    if (delta === 1) return 10;
+    return 0;
+  }
+
+  function isSpaceMaster() {
+    return getSelectedBox().rank < getIdealBox().rank;
   }
 
   function ratingFor(score) {
@@ -800,6 +932,34 @@
   // ===========================================================================
   // UI FUNCTIONS
   // ===========================================================================
+  function renderBoxPicker() {
+    if (!dom.boxPicker) return;
+    const selectedId = gameState.selectedBoxId;
+    const buttons = ["small", "medium", "large"];
+    if (!dom.boxPicker.childElementCount) {
+      buttons.forEach(function (id) {
+        const box = BOX_TYPES[id];
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "box-choice";
+        btn.setAttribute("data-box", id);
+        btn.setAttribute("role", "radio");
+        btn.innerHTML =
+          '<span class="box-choice-size">' +
+          box.label +
+          '</span><span class="box-choice-price">' +
+          formatBoxPrice(box.cost) +
+          "</span>";
+        dom.boxPicker.appendChild(btn);
+      });
+    }
+    Array.prototype.forEach.call(dom.boxPicker.querySelectorAll(".box-choice"), function (btn) {
+      const on = btn.getAttribute("data-box") === selectedId;
+      btn.classList.toggle("is-selected", on);
+      btn.setAttribute("aria-checked", on ? "true" : "false");
+    });
+  }
+
   function updateShelfHint() {
     const remaining = gameState.products.filter(function (p) {
       return !p.inBox;
@@ -821,18 +981,30 @@
 
   function updatePackButton() {
     dom.packBtn.disabled = gameState.packing || !validateOrder();
+    if (dom.boxPicker) {
+      dom.boxPicker.classList.toggle("is-locked", gameState.packing);
+    }
     renderOrder();
     updateShelfHint();
   }
 
-  function showResult(score, money, xp, perfect) {
-    dom.resultTitle.textContent = ratingFor(score);
-    dom.resultKicker.textContent = perfect ? "Every millimetre earned it" : "Order packed";
-    dom.resultSheet.classList.toggle("perfect", perfect);
+  function showResult(score, money, xp, perfect, spaceMaster) {
+    if (spaceMaster) {
+      dom.resultTitle.textContent = ratingFor(score);
+      dom.resultKicker.textContent = "SPACE MASTER · smaller than ideal";
+    } else {
+      dom.resultTitle.textContent = ratingFor(score);
+      dom.resultKicker.textContent = perfect ? "Every millimetre earned it" : "Order packed";
+    }
+    dom.resultSheet.classList.toggle("perfect", perfect || spaceMaster);
     dom.resultMoney.textContent = "+$" + money;
     dom.resultXp.textContent = "+" + xp;
     dom.resultBonus.hidden = !perfect;
     dom.resultBonus.classList.toggle("hidden", !perfect);
+    if (dom.resultSpace) {
+      dom.resultSpace.hidden = !spaceMaster;
+      dom.resultSpace.classList.toggle("hidden", !spaceMaster);
+    }
     dom.resultScore.textContent = "0";
     dom.scoreRing.style.setProperty("--p", "0%");
 
@@ -900,6 +1072,10 @@
     dom.soundToggle.addEventListener("click", toggleSound);
     dom.packBtn.addEventListener("click", completeOrder);
     dom.nextBtn.addEventListener("click", nextOrder);
+    dom.boxPicker.addEventListener("click", function (event) {
+      const btn = event.target.closest("[data-box]");
+      if (btn) selectBox(btn.getAttribute("data-box"));
+    });
 
     document.addEventListener("pointermove", moveProduct, { passive: false });
     document.addEventListener("pointerup", dropProduct);
@@ -942,6 +1118,7 @@
       /* ignore quota / private mode */
     }
     renderSoundButton();
+    renderBoxPicker();
 
     createOrder();
     spawnProducts();
