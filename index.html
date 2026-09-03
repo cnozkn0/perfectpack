@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#EED9C4" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>Perfect Pack</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="hud" aria-label="Status">
+        <div class="hud-chip" title="Coins">
+          <span class="hud-icon" aria-hidden="true">🪙</span>
+          <span id="money-value">0</span>
+        </div>
+        <p class="hud-mark">Perfect Pack</p>
+        <div class="hud-right">
+          <div class="hud-chip" title="XP">
+            <span class="hud-icon" aria-hidden="true">✦</span>
+            <span id="xp-value">0</span>
+          </div>
+          <button
+            id="sound-toggle"
+            class="icon-btn"
+            type="button"
+            aria-label="Mute sound"
+            aria-pressed="false"
+          >
+            <span id="sound-icon" aria-hidden="true">🔊</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="order-card" id="order-card" aria-live="polite">
+        <div class="order-top">
+          <h1 id="order-title">ORDER #001</h1>
+          <span class="order-count" id="order-count">2 items</span>
+        </div>
+        <ul class="order-items" id="order-items"></ul>
+      </section>
+
+      <section class="table" aria-label="Packing table">
+        <div class="table-surface">
+          <div class="box" id="box">
+            <div class="box-flap box-flap-top" aria-hidden="true"></div>
+            <div class="box-frame">
+              <div
+                class="pack-area"
+                id="pack-area"
+                role="application"
+                aria-label="Cardboard box packing area"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="dock">
+        <p class="shelf-hint" id="shelf-hint">Drag into the box · Tap to rotate</p>
+        <div class="shelf" id="shelf" aria-label="Product shelf"></div>
+        <button id="pack-btn" class="pack-btn" type="button" disabled>
+          PACK ORDER
+        </button>
+      </section>
+    </div>
+
+    <div id="drag-layer" class="drag-layer" aria-hidden="true"></div>
+    <div id="confetti" class="confetti" aria-hidden="true"></div>
+
+    <div id="result-overlay" class="overlay hidden" hidden>
+      <div class="result-sheet" role="dialog" aria-labelledby="result-title" aria-modal="true">
+        <p class="result-kicker" id="result-kicker">Order packed</p>
+        <h2 id="result-title">GREAT PACK</h2>
+        <div class="score-ring" id="score-ring">
+          <strong id="result-score">0</strong>
+          <span>Pack Score</span>
+        </div>
+        <ul class="rewards">
+          <li>
+            <span>Coins</span>
+            <strong id="result-money">+$0</strong>
+          </li>
+          <li>
+            <span>XP</span>
+            <strong id="result-xp">+0</strong>
+          </li>
+          <li id="result-bonus" class="bonus hidden" hidden>
+            <span>Perfect bonus</span>
+            <strong>+$50 · +20 XP</strong>
+          </li>
+        </ul>
+        <button id="next-btn" class="pack-btn next-btn" type="button">NEXT ORDER</button>
+      </div>
+    </div>
+
+    <script src="game.js"></script>
+  </body>
+</html>
