@@ -521,6 +521,92 @@ ul {
   box-shadow: 22px 0 0 #cfe3d6, -22px 0 0 #cfe3d6;
 }
 
+.type-perfume .product-inner {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4), transparent 28%),
+    linear-gradient(180deg, #e7d5f0 0%, #c9b0d8 100%);
+  border: 1px solid #b896c8;
+  border-radius: 10px 10px 12px 12px;
+}
+
+.type-notebook .product-inner {
+  background:
+    linear-gradient(90deg, #c45c4a 0 8px, #f4efe4 8px 100%);
+  border: 1px solid #d4c4ae;
+}
+
+.type-socks .product-inner {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 40%),
+    linear-gradient(180deg, #fde2c8 0%, #f0c49a 100%);
+  border: 1px solid #e0b07a;
+}
+
+.type-jewelry_box .product-inner {
+  background:
+    linear-gradient(180deg, #f3e0a8 0%, #d4b45a 100%);
+  border: 1px solid #c9a24a;
+  border-radius: 8px;
+}
+
+.type-poster .product-inner {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      #f6efe2 0 12px,
+      #efe4d2 12px 24px
+    );
+  border: 1px solid #d4c4ae;
+  border-radius: 6px;
+}
+
+.product-props {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  right: 3px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.prop-chip {
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: rgba(255, 248, 239, 0.9);
+  border-radius: 4px;
+  padding: 1px 3px;
+  line-height: 1.15;
+}
+
+.prop-fragile {
+  color: #b85138;
+}
+
+.prop-liquid {
+  color: #3d6b9a;
+}
+
+.prop-soft {
+  color: #4e7d62;
+}
+
+.prop-upright {
+  color: #8a5a16;
+}
+
+.product.is-tipped .product-inner {
+  box-shadow: 0 0 0 2px rgba(212, 106, 76, 0.75), 0 6px 12px rgba(74, 52, 40, 0.16);
+}
+
+.product.is-compressed .product-inner {
+  filter: saturate(0.92);
+}
+
 .rotate-btn {
   position: absolute;
   right: -8px;
@@ -537,11 +623,37 @@ ul {
   color: var(--ink);
 }
 
-.product.in-box .rotate-btn {
+.compress-btn {
+  position: absolute;
+  left: -8px;
+  bottom: -8px;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
+  font-size: 11px;
+  font-weight: 800;
+  z-index: 3;
+  display: none;
+  place-items: center;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.product.in-box .rotate-btn,
+.product.is-compressible .compress-btn {
   display: grid;
 }
 
-.rotate-btn:active {
+.compress-btn.is-on {
+  background: #d7eadc;
+  color: #3d6b4f;
+}
+
+.rotate-btn:active,
+.compress-btn:active {
   transform: scale(0.92);
 }
 
