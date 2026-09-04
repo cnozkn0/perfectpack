@@ -23,10 +23,7 @@
           <span class="hud-icon" aria-hidden="true">💵</span>
           <span id="cash-value">$100.00</span>
         </div>
-        <p class="hud-mark">
-          Perfect Pack
-          <span class="hud-rating" title="Shop rating">★<span id="shop-rating">5.0</span></span>
-        </p>
+        <p class="hud-mark">Perfect Pack</p>
         <div class="hud-right">
           <div class="hud-chip hud-xp" title="Level and XP">
             <span id="level-value">Lv 1</span>
@@ -43,6 +40,22 @@
           </button>
         </div>
       </header>
+
+      <section class="shop-stats" id="shop-stats" aria-label="Shop stats">
+        <div class="shop-stat">
+          <p class="shop-stat-label">Shop rating</p>
+          <p class="shop-stat-value"><span id="shop-rating">5.0</span> ★</p>
+        </div>
+        <div class="shop-stat">
+          <p class="shop-stat-label">Orders</p>
+          <p class="shop-stat-value" id="shop-orders">0</p>
+        </div>
+        <div class="shop-stat">
+          <p class="shop-stat-label">Perfect packs</p>
+          <p class="shop-stat-value" id="shop-perfects">0</p>
+        </div>
+        <p id="shop-vip" class="shop-vip" hidden>VIP</p>
+      </section>
 
       <section class="order-card" id="order-card" aria-live="polite">
         <div class="order-top">
@@ -158,6 +171,15 @@
       </div>
 
       <div id="result-overlay" class="overlay" aria-hidden="true">
+        <aside id="review-toast" class="review-toast" hidden role="status">
+          <p class="review-kicker">New review</p>
+          <div class="review-head">
+            <strong id="review-author">A customer</strong>
+            <span id="review-stars" class="review-stars" aria-label="5 stars">★★★★★</span>
+          </div>
+          <p id="review-quote" class="review-quote"></p>
+          <p id="review-vip-note" class="review-vip-note" hidden>VIP customers unlocked</p>
+        </aside>
         <div class="result-sheet" role="dialog" aria-labelledby="result-title" aria-modal="true">
           <p class="result-kicker" id="result-kicker">Order packed</p>
           <p id="result-request" class="result-request" hidden></p>

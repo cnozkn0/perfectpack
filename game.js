@@ -47,6 +47,13 @@
     COMPRESS_AESTHETIC_PENALTY: 2,
     STACK_AESTHETIC_PENALTY: 2,
     MAX_WRAPS: 3,
+    REVIEW_DELAY: 2000,
+    VIP_RATING: 4.8,
+    VIP_MIN_REVIEWS: 5,
+    STAR_FIVE: 95,
+    STAR_FOUR: 85,
+    STAR_THREE: 70,
+    STAR_TWO: 50,
   };
 
   // ===========================================================================
@@ -452,6 +459,106 @@
   ];
 
   // ===========================================================================
+  // CUSTOMER REVIEWS
+  // Star bands from pack score; serious violations clamp to 1★.
+  // VIP customers unlock at shop rating 4.8+ after VIP_MIN_REVIEWS.
+  // ===========================================================================
+  const REVIEW_AUTHORS = [
+    "Maya K.",
+    "Owen P.",
+    "Aya S.",
+    "Leo M.",
+    "Nora J.",
+    "Chris T.",
+    "Priya R.",
+    "Sam H.",
+    "Elena V.",
+    "Jonah L.",
+  ];
+
+  const REVIEW_TEMPLATES = {
+    five: [
+      "The packaging was absolutely perfect!",
+      "Everything arrived beautifully packed.",
+      "Obsessed with this packaging!",
+      "This is how every order should arrive.",
+      "Careful, cute, and completely intact.",
+    ],
+    four: [
+      "Really solid packing. Tiny room to grow.",
+      "Arrived looking lovely. Almost perfect.",
+      "Great job — I'd order again.",
+      "Neat box, happy customer.",
+    ],
+    three: [
+      "It got here. Packing was fine, nothing special.",
+      "Decent, but I've seen tidier boxes.",
+      "Okay overall. A bit rushed maybe?",
+      "Fine. Not the prettiest packing.",
+    ],
+    two: [
+      "The box felt messy. Not impressed.",
+      "Items were loose. Please be more careful.",
+      "Cute shop, sloppy packing.",
+      "I expected more care than this.",
+    ],
+    one: [
+      "Would not order again.",
+      "This packing was a mess.",
+      "I'm requesting a refund.",
+      "Really disappointed with this box.",
+    ],
+    protection: [
+      "My {item} arrived damaged.",
+      "Packaging looked cute but wasn't safe.",
+      "The {item} was chipped. More padding next time.",
+      "Fragile sticker energy, zero actual protection.",
+    ],
+    request: {
+      ECO: [
+        "I asked for eco packaging.",
+        "There was plastic in a no-plastic order.",
+        "Please skip the bubble wrap on eco orders.",
+      ],
+      BIRTHDAY: [
+        "The birthday note was missing.",
+        "Where was the birthday card?",
+        "I asked you to make it cute — no note inside.",
+      ],
+      GIFT: [
+        "I asked for a gift note.",
+        "This didn't feel like a present.",
+        "No gift card in the box.",
+      ],
+      DISCREET: [
+        "I asked for no branding.",
+        "The shop sticker was still on the box.",
+        "Please keep discreet orders anonymous.",
+      ],
+      NO_INVOICE: [
+        "Please don't include an invoice.",
+        "There was a card in the box.",
+        "I asked for no invoice.",
+      ],
+      FRAGILE_PLUS: [
+        "I flagged this as extra fragile.",
+        "Not enough padding for a fragile order.",
+        "Extra-fragile meant extra wrap. It didn't.",
+      ],
+      EXPRESS: [
+        "I paid for express and it felt late.",
+        "The rush order didn't feel rushed on your end.",
+        "Express packing took too long.",
+      ],
+      PREMIUM: [
+        "I expected premium presentation.",
+        "This didn't look expensive.",
+        "Premium order, ordinary packing.",
+      ],
+    },
+  };
+
+  // ===========================================================================
   // gameState
   // ===========================================================================
   const gameState = {
@@ -466,6 +573,11 @@
     totalOrders: 0,
     perfectPacks: 0,
     shopRating: 5,
+    ratingSum: 0,
+    ratingCount: 0,
+    reviews: [],
+    vipUnlocked: false,
+    vipUnlockPending: false,
     soundEnabled: true,
     products: [],
     nextInstanceId: 1,
@@ -485,6 +597,7 @@
       scoreRaf: 0,
       express: 0,
       toast: 0,
+      review: 0,
     },
   };
 
@@ -499,6 +612,10 @@
     dom.levelValue = $("level-value");
     dom.xpValue = $("xp-value");
     dom.shopRating = $("shop-rating");
+    dom.shopOrders = $("shop-orders");
+    dom.shopPerfects = $("shop-perfects");
+    dom.shopStats = $("shop-stats");
+    dom.shopVip = $("shop-vip");
     dom.soundToggle = $("sound-toggle");
     dom.soundIcon = $("sound-icon");
     dom.orderTitle = $("order-title");
@@ -561,6 +678,11 @@
     dom.resultXp = $("result-xp");
     dom.resultLevelUp = $("result-level-up");
     dom.nextBtn = $("next-btn");
+    dom.reviewToast = $("review-toast");
+    dom.reviewAuthor = $("review-author");
+    dom.reviewStars = $("review-stars");
+    dom.reviewQuote = $("review-quote");
+    dom.reviewVipNote = $("review-vip-note");
   }
 
   function $(id) {
@@ -657,6 +779,105 @@
     return req.id.replace(/_/g, " ") + " HONORED";
   }
 
+  function pickFrom(list, seed) {
+    if (!list || !list.length) return "";
+    const i = Math.abs(seed | 0) % list.length;
+    return list[i];
+  }
+
+  function damagedItemName() {
+    const placed = gameState.products.filter(function (p) {
+      return p.inBox;
+    });
+    const fragile = placed.filter(function (p) {
+      return getType(p.typeId).fragile;
+    });
+    const pick = fragile[0] || placed[0];
+    return pick ? getType(pick.typeId).name.toLowerCase() : "item";
+  }
+
+  function fillReviewText(text) {
+    return String(text || "").replace(/\{item\}/g, damagedItemName());
+  }
+
+  function starsFromScore(total) {
+    if (total >= CONFIG.STAR_FIVE) return 5;
+    if (total >= CONFIG.STAR_FOUR) return 4;
+    if (total >= CONFIG.STAR_THREE) return 3;
+    if (total >= CONFIG.STAR_TWO) return 2;
+    return 1;
+  }
+
+  function isSeriousViolation(breakdown) {
+    const requestFailed = !!(breakdown.request && breakdown.request.id && !breakdown.request.honored);
+    const damaged = (breakdown.categories && breakdown.categories.protection) < CONFIG.REFUND_HARD_BELOW;
+    return requestFailed || damaged;
+  }
+
+  function starGlyphs(n) {
+    const filled = "★★★★★".slice(0, n);
+    const empty = "☆☆☆☆☆".slice(0, 5 - n);
+    return filled + empty;
+  }
+
+  function rewardMultiplier() {
+    if (gameState.ratingCount < 1) return 1;
+    const r = gameState.shopRating;
+    if (r < 4) return 1;
+    return Math.round((1 + (r - 4) * 0.03) * 1000) / 1000;
+  }
+
+  function shouldOfferVipOrder() {
+    return (
+      gameState.vipUnlocked &&
+      gameState.shopRating >= CONFIG.VIP_RATING &&
+      gameState.ratingCount >= CONFIG.VIP_MIN_REVIEWS
+    );
+  }
+
+  function syncVipUnlock() {
+    if (gameState.vipUnlocked) return false;
+    if (gameState.ratingCount < CONFIG.VIP_MIN_REVIEWS) return false;
+    if (gameState.shopRating < CONFIG.VIP_RATING) return false;
+    gameState.vipUnlocked = true;
+    gameState.vipUnlockPending = true;
+    return true;
+  }
+
+  function buildCustomerReview(breakdown) {
+    const total = breakdown.total || 0;
+    let stars = starsFromScore(total);
+    const serious = isSeriousViolation(breakdown);
+    if (serious) stars = 1;
+
+    const seed =
+      ((gameState.currentOrder && gameState.currentOrder.number) || 1) * 17 +
+      total * 3 +
+      stars * 11;
+    let pool = REVIEW_TEMPLATES.five;
+    let reason = "score";
+    const req = breakdown.request;
+    if (req && req.id && !req.honored) {
+      pool = REVIEW_TEMPLATES.request[req.id] || REVIEW_TEMPLATES.one;
+      reason = "request";
+    } else if ((breakdown.categories && breakdown.categories.protection) < CONFIG.REFUND_SOFT_BELOW) {
+      pool = REVIEW_TEMPLATES.protection;
+      reason = "protection";
+    } else if (stars === 5) pool = REVIEW_TEMPLATES.five;
+    else if (stars === 4) pool = REVIEW_TEMPLATES.four;
+    else if (stars === 3) pool = REVIEW_TEMPLATES.three;
+    else if (stars === 2) pool = REVIEW_TEMPLATES.two;
+    else pool = REVIEW_TEMPLATES.one;
+
+    return {
+      stars: stars,
+      text: fillReviewText(pickFrom(pool, seed)),
+      author: pickFrom(REVIEW_AUTHORS, seed + 5),
+      reason: reason,
+      serious: serious,
+    };
+  }
+
   function itemCount(items) {
     return Object.values(items).reduce((sum, n) => sum + n, 0);
   }
@@ -670,12 +891,14 @@
     window.clearTimeout(gameState.timers.snap);
     window.clearTimeout(gameState.timers.confetti);
     window.clearTimeout(gameState.timers.toast);
+    window.clearTimeout(gameState.timers.review);
     window.clearInterval(gameState.timers.express);
     window.cancelAnimationFrame(gameState.timers.scoreRaf);
     gameState.timers.reject = 0;
     gameState.timers.snap = 0;
     gameState.timers.confetti = 0;
     gameState.timers.toast = 0;
+    gameState.timers.review = 0;
     gameState.timers.express = 0;
     gameState.timers.scoreRaf = 0;
   }
@@ -762,6 +985,8 @@
   function createOrder() {
     const template = ORDERS[gameState.orderIndex % ORDERS.length];
     const idealBox = template.idealBox || "medium";
+    // VIP catalog hook: when shouldOfferVipOrder() is true, future VIP_ORDERS
+    // can replace `template`. For now the flag rides on the same SKUs.
     gameState.currentOrder = {
       id: template.id,
       number: gameState.orderIndex + 1,
@@ -770,6 +995,7 @@
       request: template.request || null,
       quote: template.quote || null,
       timerSeconds: template.timerSeconds || null,
+      vip: shouldOfferVipOrder(),
     };
     applySelectedBox(idealBox, { dumpItems: false });
   }
@@ -860,6 +1086,7 @@
     });
 
     renderRequestBlock();
+    renderShopStats();
 
     dom.cashValue.textContent = formatMoney(gameState.cash);
     const progress = levelProgress(gameState.xp);
@@ -867,8 +1094,23 @@
       dom.levelValue.textContent = "Lv " + progress.level;
     }
     dom.xpValue.textContent = progress.into + "/" + progress.need;
+  }
+
+  function renderShopStats() {
     if (dom.shopRating) {
       dom.shopRating.textContent = gameState.shopRating.toFixed(1);
+    }
+    if (dom.shopOrders) {
+      dom.shopOrders.textContent = String(gameState.totalOrders);
+    }
+    if (dom.shopPerfects) {
+      dom.shopPerfects.textContent = String(gameState.perfectPacks);
+    }
+    if (dom.shopStats) {
+      dom.shopStats.classList.toggle("is-vip", !!gameState.vipUnlocked);
+    }
+    if (dom.shopVip) {
+      dom.shopVip.hidden = !gameState.vipUnlocked;
     }
   }
 
@@ -2076,6 +2318,11 @@
     const badges = collectBadges(categories, fitInfo, request);
     const rank = rankFor(total);
     const perfect = rank.id === "perfect";
+    const review = buildCustomerReview({
+      total: total,
+      categories: categories,
+      request: request,
+    });
     const economy = calculateEconomy(total, perfect, categories.protection);
     return {
       total: total,
@@ -2088,6 +2335,7 @@
       economy: economy,
       xp: economy.xp,
       request: request,
+      review: review,
     };
   }
 
@@ -2159,15 +2407,13 @@
     };
   }
 
-  function updateShopRating(score) {
-    const sample = clamp(score / 20, 0.5, 5);
-    const n = gameState.totalOrders;
-    if (n <= 1) {
-      gameState.shopRating = Math.round(sample * 10) / 10;
-      return;
-    }
+  function updateShopRating(stars) {
+    const value = clamp(stars, 1, 5);
+    gameState.ratingSum += value;
+    gameState.ratingCount += 1;
     gameState.shopRating =
-      Math.round(((gameState.shopRating * (n - 1) + sample) / n) * 10) / 10;
+      Math.round((gameState.ratingSum / gameState.ratingCount) * 10) / 10;
+    syncVipUnlock();
   }
 
   function calculateEconomy(total, perfect, protectionScore) {
@@ -2196,18 +2442,22 @@
     let tipRate = 0;
     if (perfect) tipRate = CONFIG.TIP_PERFECT;
     else if (total >= CONFIG.AMAZING_MIN) tipRate = CONFIG.TIP_HIGH_SCORE;
-    const tip = cents(revenue * tipRate);
+    const mult = rewardMultiplier();
+    const tip = cents(revenue * tipRate * (tipRate ? mult : 1));
+    const ratingBonus =
+      mult > 1 ? cents(Math.max(0, revenue - productCost) * (mult - 1)) : 0;
 
     let refundRate = 0;
     if (protectionScore < CONFIG.REFUND_HARD_BELOW) refundRate = CONFIG.REFUND_HARD;
     else if (protectionScore < CONFIG.REFUND_SOFT_BELOW) refundRate = CONFIG.REFUND_SOFT;
     const refund = cents(revenue * refundRate);
 
-    const profit = cents(revenue - productCost - packaging - shipping + tip - refund);
+    const profit = cents(revenue - productCost - packaging - shipping + tip + ratingBonus - refund);
 
     let xp = CONFIG.XP_ORDER;
     if (total >= CONFIG.AMAZING_MIN) xp += CONFIG.XP_HIGH_SCORE;
     if (perfect) xp += CONFIG.XP_PERFECT;
+    xp = Math.round(xp * mult);
 
     return {
       revenue: cents(revenue),
@@ -2217,6 +2467,8 @@
       packaging: cents(packaging),
       shipping: shipping,
       tip: tip,
+      ratingBonus: ratingBonus,
+      multiplier: mult,
       refund: refund,
       refundRate: refundRate,
       profit: profit,
@@ -2230,9 +2482,15 @@
     gameState.xp += eco.xp;
     gameState.totalOrders += 1;
     if (breakdown.perfect) gameState.perfectPacks += 1;
+    if (breakdown.review) {
+      updateShopRating(breakdown.review.stars);
+      gameState.reviews.push(breakdown.review);
+      if (gameState.reviews.length > 12) gameState.reviews.shift();
+    }
     const levelInfo = syncLevel();
-    updateShopRating(breakdown.total);
     breakdown.levelInfo = levelInfo;
+    breakdown.vipJustUnlocked = !!gameState.vipUnlockPending;
+    if (gameState.vipUnlockPending) gameState.vipUnlockPending = false;
     return levelInfo;
   }
 
@@ -2713,6 +2971,49 @@
 
     setOverlayOpen(dom.resultOverlay, true);
     countUpBreakdown(breakdown);
+    scheduleReviewToast(breakdown);
+  }
+
+  function hideReviewToast() {
+    window.clearTimeout(gameState.timers.review);
+    gameState.timers.review = 0;
+    if (!dom.reviewToast) return;
+    dom.reviewToast.classList.remove("is-on");
+    dom.reviewToast.hidden = true;
+    if (dom.reviewVipNote) {
+      dom.reviewVipNote.hidden = true;
+    }
+  }
+
+  function scheduleReviewToast(breakdown) {
+    hideReviewToast();
+    const review = breakdown && breakdown.review;
+    if (!review || !dom.reviewToast) return;
+    gameState.timers.review = window.setTimeout(function () {
+      showReviewToast(review, !!breakdown.vipJustUnlocked);
+    }, CONFIG.REVIEW_DELAY);
+  }
+
+  function showReviewToast(review, vipNote) {
+    if (!dom.reviewToast) return;
+    if (dom.reviewAuthor) dom.reviewAuthor.textContent = review.author;
+    if (dom.reviewStars) {
+      dom.reviewStars.textContent = starGlyphs(review.stars);
+      dom.reviewStars.setAttribute("aria-label", review.stars + " stars");
+    }
+    if (dom.reviewQuote) {
+      dom.reviewQuote.textContent = '"' + review.text + '"';
+    }
+    if (dom.reviewVipNote) {
+      dom.reviewVipNote.hidden = !vipNote;
+    }
+    dom.reviewToast.classList.toggle("is-low", review.stars <= 2);
+    dom.reviewToast.hidden = false;
+    window.requestAnimationFrame(function () {
+      dom.reviewToast.classList.add("is-on");
+    });
+    playSound("review");
+    haptic(review.stars <= 2 ? 16 : 10);
   }
 
   function renderScoreCats(categories, reset) {
@@ -2770,6 +3071,7 @@
       { label: "Shipping", value: -eco.shipping, kind: "neg" },
     ];
     if (eco.tip) rows.push({ label: "Tip", value: eco.tip, kind: "tip" });
+    if (eco.ratingBonus) rows.push({ label: "Rating bonus", value: eco.ratingBonus, kind: "tip" });
     if (eco.refund) rows.push({ label: "Refund", value: -eco.refund, kind: "refund" });
     rows.push({ label: "Profit", value: eco.profit, kind: "profit" });
 
@@ -2787,6 +3089,7 @@
   function hideResult() {
     window.cancelAnimationFrame(gameState.timers.scoreRaf);
     gameState.timers.scoreRaf = 0;
+    hideReviewToast();
     setOverlayOpen(dom.resultOverlay, false);
     if (dom.resultSheet) dom.resultSheet.className = "result-sheet";
   }
@@ -3540,6 +3843,7 @@
     label: { src: null, synth: "label" },
     scan: { src: null, synth: "scan" },
     shipped: { src: null, synth: "shipped" },
+    review: { src: null, synth: "review" },
   };
 
   function getAudioContext() {
@@ -3703,6 +4007,10 @@
         tone("sine", 523.25, 0.14, 0.1, null, 0);
         tone("sine", 659.25, 0.16, 0.1, null, 0.12);
         tone("sine", 783.99, 0.28, 0.12, 1046.5, 0.26);
+        break;
+      case "review":
+        tone("sine", 784, 0.1, 0.045, null, 0);
+        tone("triangle", 988, 0.16, 0.05, null, 0.08);
         break;
       default:
         tone("sine", 500, 0.12, 0.08, 400, 0);
