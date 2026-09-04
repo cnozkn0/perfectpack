@@ -1041,28 +1041,20 @@ ul {
 .finish-overlay {
   position: absolute;
   inset: 0;
-  z-index: 40;
+  z-index: 100;
   display: none;
   align-items: center;
   justify-content: center;
   background:
     radial-gradient(120% 50% at 50% 0%, #fff6ea 0%, transparent 50%),
     linear-gradient(180deg, #f3e4d2 0%, #e7d0b8 100%);
-  padding: calc(18px + var(--safe-top)) 14px calc(12px + var(--safe-bottom));
+  padding: 16px 14px 12px;
   touch-action: none;
   user-select: none;
-  pointer-events: auto;
-}
-
-.finish-overlay:not(.is-open) {
-  display: none !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
 }
 
 .finish-overlay.is-open {
-  display: flex !important;
-  visibility: visible !important;
+  display: flex;
 }
 
 .finish-stage {
@@ -1604,7 +1596,7 @@ ul {
 .overlay {
   position: absolute;
   inset: 0;
-  z-index: 50;
+  z-index: 110;
   background: rgba(42, 33, 27, 0.38);
   display: none;
   align-items: flex-end;
@@ -1613,12 +1605,8 @@ ul {
   padding-bottom: calc(16px + var(--safe-bottom));
 }
 
-.overlay:not(.is-open) {
-  display: none !important;
-}
-
 .overlay.is-open {
-  display: flex !important;
+  display: flex;
 }
 
 .result-sheet {

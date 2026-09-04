@@ -1908,20 +1908,10 @@
 
   function setOverlayOpen(el, open) {
     if (!el) return;
-    if (open) {
-      el.hidden = false;
-      el.removeAttribute("hidden");
-      el.classList.remove("hidden");
-      el.classList.add("is-open");
-      el.setAttribute("aria-hidden", "false");
-      el.style.setProperty("display", "flex", "important");
-    } else {
-      el.classList.remove("is-open");
-      el.classList.add("hidden");
-      el.hidden = true;
-      el.setAttribute("aria-hidden", "true");
-      el.style.setProperty("display", "none", "important");
-    }
+    el.classList.toggle("is-open", open);
+    el.setAttribute("aria-hidden", open ? "false" : "true");
+    el.removeAttribute("hidden");
+    el.style.removeProperty("display");
   }
 
   function startFinishSequence() {
