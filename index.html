@@ -89,9 +89,8 @@
           PACK ORDER
         </button>
       </section>
-    </div>
 
-    <div id="finish-overlay" class="finish-overlay" aria-hidden="true">
+      <div id="finish-overlay" class="finish-overlay" hidden aria-hidden="true">
         <div class="finish-stage">
           <p class="finish-kicker" id="finish-kicker">Seal the box</p>
           <div class="finish-rail" id="finish-rail" aria-label="Packing finish steps">
@@ -110,78 +109,79 @@
 
           <div class="finish-box" id="finish-box">
             <span class="finish-swipe-cue" id="finish-swipe-cue" aria-hidden="true">↓</span>
-          <div class="finish-flap finish-flap-l" id="finish-flap-l"></div>
-          <div class="finish-flap finish-flap-r" id="finish-flap-r"></div>
-          <div class="finish-lid" id="finish-lid">
-            <span class="finish-box-tag" id="finish-box-tag">M</span>
+            <div class="finish-flap finish-flap-l" id="finish-flap-l"></div>
+            <div class="finish-flap finish-flap-r" id="finish-flap-r"></div>
+            <div class="finish-lid" id="finish-lid">
+              <span class="finish-box-tag" id="finish-box-tag">M</span>
+            </div>
+            <div class="finish-cavity" id="finish-cavity">
+              <div class="finish-goods" aria-hidden="true"></div>
+              <div class="finish-tissue" id="finish-tissue"></div>
+              <div class="finish-card-slot" id="finish-card-slot"></div>
+            </div>
+            <div class="finish-tape" id="finish-tape"></div>
+            <div class="finish-sticker-spot" id="finish-sticker-spot"></div>
+            <div class="finish-label-spot" id="finish-label-spot"></div>
+            <div class="finish-barcode" id="finish-barcode" aria-label="Barcode"></div>
+            <div class="finish-shipped" id="finish-shipped">
+              <strong>SHIPPED</strong>
+              <span>✓</span>
+            </div>
           </div>
-          <div class="finish-cavity" id="finish-cavity">
-            <div class="finish-goods" aria-hidden="true"></div>
-            <div class="finish-tissue" id="finish-tissue"></div>
-            <div class="finish-card-slot" id="finish-card-slot"></div>
-          </div>
-          <div class="finish-tape" id="finish-tape"></div>
-          <div class="finish-sticker-spot" id="finish-sticker-spot"></div>
-          <div class="finish-label-spot" id="finish-label-spot"></div>
-          <div class="finish-barcode" id="finish-barcode" aria-label="Barcode"></div>
-          <div class="finish-shipped" id="finish-shipped">
-            <strong>SHIPPED</strong>
-            <span>✓</span>
-          </div>
-        </div>
 
-        <div class="finish-props" id="finish-props">
-          <div class="finish-prop finish-card" id="finish-card" aria-label="Thank you card">
-            <span>Thank you</span>
-          </div>
-          <div class="finish-prop finish-sticker" id="finish-sticker" aria-label="Shop sticker">
-            <span>PP</span>
-          </div>
-          <div class="finish-prop finish-label" id="finish-label" aria-label="Shipping label">
-            <span>SHIP TO</span>
-            <em>Cozy Shop</em>
-          </div>
-          <div class="finish-prop finish-scanner" id="finish-scanner" aria-label="Barcode scanner">
-            <span>SCAN</span>
+          <div class="finish-props" id="finish-props">
+            <div class="finish-prop finish-card" id="finish-card" aria-label="Thank you card">
+              <span>Thank you</span>
+            </div>
+            <div class="finish-prop finish-sticker" id="finish-sticker" aria-label="Shop sticker">
+              <span>PP</span>
+            </div>
+            <div class="finish-prop finish-label" id="finish-label" aria-label="Shipping label">
+              <span>SHIP TO</span>
+              <em>Cozy Shop</em>
+            </div>
+            <div class="finish-prop finish-scanner" id="finish-scanner" aria-label="Barcode scanner">
+              <span>SCAN</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div id="result-overlay" class="overlay" hidden aria-hidden="true">
-      <div class="result-sheet" role="dialog" aria-labelledby="result-title" aria-modal="true">
-        <p class="result-kicker" id="result-kicker">Order packed</p>
-        <h2 id="result-title">GREAT PACK</h2>
-        <div class="score-ring" id="score-ring">
-          <strong id="result-score">0</strong>
-          <span>Pack Score</span>
-        </div>
-        <div class="protection-result">
-          <div class="protection-meter">
-            <span>PROTECTION</span>
-            <strong id="result-protection">0%</strong>
+      <div id="result-overlay" class="overlay" hidden aria-hidden="true">
+        <div class="result-sheet" role="dialog" aria-labelledby="result-title" aria-modal="true">
+          <p class="result-kicker" id="result-kicker">Order packed</p>
+          <h2 id="result-title">GREAT PACK</h2>
+          <div class="score-ring" id="score-ring">
+            <strong id="result-score">0</strong>
+            <span>Pack Score</span>
           </div>
-          <ul class="protection-risks" id="result-risks"></ul>
+          <div class="protection-result">
+            <div class="protection-meter">
+              <span>PROTECTION</span>
+              <strong id="result-protection">0%</strong>
+            </div>
+            <ul class="protection-risks" id="result-risks"></ul>
+          </div>
+          <ul class="rewards">
+            <li>
+              <span>Coins</span>
+              <strong id="result-money">+$0</strong>
+            </li>
+            <li>
+              <span>XP</span>
+              <strong id="result-xp">+0</strong>
+            </li>
+            <li id="result-bonus" class="bonus hidden" hidden>
+              <span>Perfect bonus</span>
+              <strong>+$50 · +20 XP</strong>
+            </li>
+            <li id="result-space" class="bonus space-master hidden" hidden>
+              <span>SPACE MASTER</span>
+              <strong>+$30 · +15 XP</strong>
+            </li>
+          </ul>
+          <button id="next-btn" class="pack-btn next-btn" type="button">NEXT ORDER</button>
         </div>
-        <ul class="rewards">
-          <li>
-            <span>Coins</span>
-            <strong id="result-money">+$0</strong>
-          </li>
-          <li>
-            <span>XP</span>
-            <strong id="result-xp">+0</strong>
-          </li>
-          <li id="result-bonus" class="bonus hidden" hidden>
-            <span>Perfect bonus</span>
-            <strong>+$50 · +20 XP</strong>
-          </li>
-          <li id="result-space" class="bonus space-master hidden" hidden>
-            <span>SPACE MASTER</span>
-            <strong>+$30 · +15 XP</strong>
-          </li>
-        </ul>
-        <button id="next-btn" class="pack-btn next-btn" type="button">NEXT ORDER</button>
       </div>
     </div>
 
