@@ -2369,7 +2369,7 @@
       if (id === "scan") {
         const bar = dom.finishBarcode.getBoundingClientRect();
         const wand = g.prop.getBoundingClientRect();
-        if (rectsOverlap(bar, wand)) finishScan();
+        if (domRectsOverlap(bar, wand)) finishScan();
       }
     }
   }
@@ -2419,7 +2419,7 @@
       const boxRect = dom.finishBox.getBoundingClientRect();
       const overBox =
         isPointInElement(event.clientX, event.clientY, dom.finishBox) ||
-        rectsOverlap(propRect, boxRect);
+        domRectsOverlap(propRect, boxRect);
       prop.classList.remove("dragging");
       prop.style.left = "";
       prop.style.top = "";
@@ -2452,7 +2452,7 @@
     }
   }
 
-  function rectsOverlap(a, b) {
+  function domRectsOverlap(a, b) {
     return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
   }
 
