@@ -632,9 +632,11 @@
     dom.packArea = $("pack-area");
     dom.shelf = $("shelf");
     dom.shelfHint = $("shelf-hint");
+    dom.dock = document.querySelector(".dock");
     dom.wrapTray = $("wrap-tray");
     dom.wrapTrayLabel = $("wrap-tray-label");
     dom.wrapTrayStat = $("wrap-tray-stat");
+    dom.wrapTargets = $("wrap-targets");
     dom.wrapOptions = $("wrap-options");
     dom.unwrapBtn = $("unwrap-btn");
     dom.packBtn = $("pack-btn");
@@ -2836,6 +2838,9 @@
     if (!product || !product.inBox) {
       dom.wrapTray.hidden = true;
       dom.wrapTray.classList.add("hidden");
+      if (dom.dock) dom.dock.classList.remove("is-wrapping");
+      renderWrapTargets(null);
+      scheduleFitBox();
       return;
     }
 
@@ -2899,6 +2904,33 @@
     if (dom.unwrapBtn) {
       dom.unwrapBtn.disabled = !(product.wraps && product.wraps.length);
     }
+    if (dom.dock) dom.dock.classList.add("is-wrapping");
+    renderWrapTargets(product);
+    scheduleFitBox();
+  }
+
+  function renderWrapTargets(selected) {
+    if (!dom.wrapTargets) return;
+    const packed = gameState.products.filter(function (p) {
+      return p.inBox;
+    });
+    if (!selected || packed.length < 2) {
+      dom.wrapTargets.hidden = true;
+      dom.wrapTargets.innerHTML = "";
+      return;
+    }
+    dom.wrapTargets.hidden = false;
+    dom.wrapTargets.innerHTML = "";
+    packed.forEach(function (p) {
+      const type = getType(p.typeId);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "wrap-target" + (selected.id === p.id ? " is-on" : "");
+      btn.setAttribute("data-product", String(p.id));
+      btn.innerHTML =
+        '<span aria-hidden="true">' + type.icon + "</span><span>" + type.name + "</span>";
+      dom.wrapTargets.appendChild(btn);
+    });
   }
 
   function updateShelfHint() {
@@ -3182,6 +3214,17 @@
         const product = getSelectedProduct();
         if (!btn || !product) return;
         applyWrap(product, btn.getAttribute("data-wrap"));
+      });
+    }
+    if (dom.wrapTargets) {
+      dom.wrapTargets.addEventListener("click", function (event) {
+        const btn = event.target.closest("[data-product]");
+        if (!btn) return;
+        const id = parseInt(btn.getAttribute("data-product"), 10);
+        const product = gameState.products.filter(function (p) {
+          return p.id === id;
+        })[0];
+        if (product) selectProduct(product);
       });
     }
     if (dom.unwrapBtn) {

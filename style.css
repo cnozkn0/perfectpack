@@ -457,8 +457,8 @@ ul {
 
 /* ——— Packing table ——— */
 .table {
-  flex: 1 1 auto;
-  min-height: 240px;
+  flex: 1 1 0;
+  min-height: 0;
   min-width: 0;
   width: 100%;
   display: flex;
@@ -968,13 +968,8 @@ ul {
 }
 
 /* ——— Shelf + pack button ——— */
-.dock {
-  position: relative;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 3;
+.dock.is-wrapping .shelf {
+  min-height: 64px;
 }
 
 .shelf-hint {
@@ -988,7 +983,7 @@ ul {
 }
 
 .shelf {
-  min-height: 96px;
+  min-height: 80px;
   max-width: 100%;
   background: linear-gradient(180deg, #c9a57c 0%, #b08962 100%);
   border-radius: 18px;
@@ -1034,23 +1029,44 @@ ul {
 }
 
 .wrap-tray {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 100%;
-  margin-bottom: 8px;
+  position: relative;
   z-index: 8;
   background: var(--paper);
   border-radius: 16px;
   padding: 8px 8px 10px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .wrap-tray.hidden {
   display: none;
+}
+
+.wrap-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wrap-target {
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #f6ebdd;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 2px solid transparent;
+}
+
+.wrap-target.is-on {
+  border-color: var(--terracotta);
+  background: #fde7c8;
 }
 
 .wrap-tray-head {
@@ -1138,6 +1154,7 @@ ul {
 .pack-btn {
   width: 100%;
   min-height: 54px;
+  flex-shrink: 0;
   border-radius: 18px;
   background: linear-gradient(180deg, #e08162 0%, var(--terracotta) 100%);
   color: #fff8ef;
@@ -2192,6 +2209,10 @@ ul {
 }
 
 @media (max-height: 700px) {
+  #app {
+    gap: 6px;
+  }
+
   .shop-stats {
     padding: 5px 8px 6px;
   }
@@ -2218,7 +2239,7 @@ ul {
   }
 
   .shelf {
-    min-height: 84px;
+    min-height: 64px;
   }
 
   .pack-btn {
