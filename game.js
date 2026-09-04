@@ -10,7 +10,7 @@
   // ===========================================================================
   const CONFIG = {
     SNAP_GRID: 2,
-    TAP_MOVE_PX: 8,
+    TAP_MOVE_PX: 16,
     PERFECT_MIN: 90,
     GREAT_MIN: 75,
     GOOD_MIN: 60,
@@ -1292,7 +1292,20 @@
     snapUprightPose(product);
     applyProductMetrics(product);
 
+    const dist = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
     const overShelf = isPointInElement(event.clientX, event.clientY, dom.shelf);
+    const overBox =
+      isPointInElement(event.clientX, event.clientY, dom.packArea) ||
+      isPointInElement(event.clientX, event.clientY, dom.box);
+
+    if (!drag.fromBox && overShelf && !overBox && dist < 48) {
+      returnToShelf(product);
+      clearDragVisuals();
+      gameState.drag = null;
+      handleProductTap(product);
+      return;
+    }
+
     if (overShelf) {
       returnToShelf(product);
       playSound("place");
@@ -1300,9 +1313,6 @@
       return;
     }
 
-    const overBox =
-      isPointInElement(event.clientX, event.clientY, dom.packArea) ||
-      isPointInElement(event.clientX, event.clientY, dom.box);
     const local = clientRectToBoxLocal(el);
     let snappedX = snapValue(local.x);
     let snappedY = snapValue(local.y);
@@ -1949,7 +1959,7 @@
     }
     if (dom.packArea) {
       dom.packArea.addEventListener("pointerdown", function (event) {
-        if (event.target !== dom.packArea) return;
+        if (event.target.closest(".product")) return;
         const selected = getSelectedProduct();
         if (selected && !selected.inBox && !gameState.packing) {
           autoPlaceProduct(selected);
