@@ -112,7 +112,7 @@ ul {
 /* ——— HUD (compact, not a website navbar) ——— */
 .hud {
   position: relative;
-  z-index: 210;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1032,26 +1032,23 @@ ul {
 }
 
 .finish-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 200;
-  background:
-    radial-gradient(120% 50% at 50% 0%, #fff6ea 0%, transparent 50%),
-    linear-gradient(180deg, #f3e4d2 0%, #e7d0b8 100%);
+  z-index: 10000;
   display: none;
   align-items: center;
   justify-content: center;
-  padding: calc(52px + var(--safe-top)) 14px calc(12px + var(--safe-bottom));
+  background:
+    radial-gradient(120% 50% at 50% 0%, #fff6ea 0%, transparent 50%),
+    linear-gradient(180deg, #f3e4d2 0%, #e7d0b8 100%);
+  padding: calc(24px + var(--safe-top)) 14px calc(16px + var(--safe-bottom));
   touch-action: none;
   user-select: none;
+  pointer-events: auto;
 }
 
 .finish-overlay.is-open {
-  display: flex !important;
-}
-
-.finish-overlay.hidden {
-  display: none !important;
+  display: flex;
 }
 
 .finish-stage {
@@ -1077,27 +1074,28 @@ ul {
   gap: 4px;
   max-width: 100%;
   margin: 2px 0 4px;
+  list-style: none;
 }
 
-.finish-rail li {
-  font-size: 9px;
+.finish-rail span {
+  font-size: 8px;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  background: rgba(255, 248, 239, 0.55);
+  background: rgba(255, 248, 239, 0.7);
   border-radius: 999px;
-  padding: 4px 7px;
-  opacity: 0.45;
+  padding: 4px 6px;
+  opacity: 0.5;
 }
 
-.finish-rail li.is-done {
-  opacity: 0.85;
+.finish-rail span.is-done {
+  opacity: 0.9;
   background: rgba(109, 154, 124, 0.28);
-  color: #3f6a4d;
+  color: #3d6b4f;
 }
 
-.finish-rail li.is-current {
+.finish-rail span.is-current {
   opacity: 1;
   background: var(--terracotta);
   color: #fff8ef;
@@ -1157,10 +1155,11 @@ ul {
 }
 
 .finish-box-tag {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.16em;
-  color: rgba(74, 52, 40, 0.55);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(74, 52, 40, 0.7);
 }
 
 .finish-cavity {
@@ -1283,10 +1282,11 @@ ul {
   opacity: 1;
   pointer-events: auto;
   cursor: pointer;
-  transform: rotateX(-48deg);
+  height: 72%;
+  transform: rotateX(-22deg);
   box-shadow:
     0 10px 16px rgba(90, 50, 20, 0.22),
-    0 0 0 2px rgba(255, 248, 239, 0.35);
+    0 0 0 2px rgba(255, 248, 239, 0.45);
 }
 
 .finish-flap.is-closed {
@@ -1590,17 +1590,17 @@ ul {
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 300;
+  z-index: 10001;
   background: rgba(42, 33, 27, 0.38);
-  display: flex;
+  display: none;
   align-items: flex-end;
   justify-content: center;
   padding: 16px;
   padding-bottom: calc(16px + var(--safe-bottom));
 }
 
-.overlay.hidden {
-  display: none;
+.overlay.is-open {
+  display: flex;
 }
 
 .result-sheet {

@@ -1711,6 +1711,7 @@
   }
 
   function showResult(score, money, xp, perfect, spaceMaster, protection) {
+    if (gameState.finish && gameState.finish.active && !gameState.finish.completed) return;
     protection = protection || calculateProtectionScore();
     dom.resultTitle.textContent = ratingFor(score, protection.allSafe);
     if (!protection.allSafe) {
@@ -1754,8 +1755,7 @@
     dom.resultScore.textContent = "0";
     dom.scoreRing.style.setProperty("--p", "0%");
 
-    dom.resultOverlay.hidden = false;
-    dom.resultOverlay.classList.remove("hidden");
+    setOverlayOpen(dom.resultOverlay, true);
 
     countUp(score);
   }
@@ -1763,9 +1763,8 @@
   function hideResult() {
     window.cancelAnimationFrame(gameState.timers.scoreRaf);
     gameState.timers.scoreRaf = 0;
-    dom.resultOverlay.hidden = true;
-    dom.resultOverlay.classList.add("hidden");
-    dom.resultSheet.classList.remove("perfect");
+    setOverlayOpen(dom.resultOverlay, false);
+    if (dom.resultSheet) dom.resultSheet.classList.remove("perfect");
   }
 
   function countUp(target) {
@@ -1776,7 +1775,7 @@
       const t = clamp((now - start) / duration, 0, 1);
       const eased = 1 - Math.pow(1 - t, 3);
       const value = Math.round(target * eased);
-      if (!dom.resultOverlay.hidden) {
+      if (dom.resultOverlay && dom.resultOverlay.classList.contains("is-open")) {
         dom.resultScore.textContent = String(value);
         dom.scoreRing.style.setProperty("--p", value + "%");
       }
@@ -1880,7 +1879,7 @@
   const FINISH_STEPS = [
     { id: "tissue", title: "Tissue Paper", hint: "Swipe down to tuck the tissue" },
     { id: "card", title: "Thank You Card", hint: "Drop the card into the box" },
-    { id: "close", title: "Close Box", hint: "Fold both flaps shut" },
+    { id: "close", title: "Close Box", hint: "Tap the left flap, then the right flap" },
     { id: "sticker", title: "Sticker", hint: "Peel, then stick it on the box" },
     { id: "tape", title: "Tape", hint: "Swipe left to right across the box" },
     { id: "label", title: "Shipping Label", hint: "Place the label on the box" },
@@ -1902,8 +1901,27 @@
       labelPlaced: false,
       scanned: false,
       completed: false,
+      ignoreUntil: 0,
       gesture: null,
     };
+  }
+
+  function setOverlayOpen(el, open) {
+    if (!el) return;
+    if (open) {
+      el.hidden = false;
+      el.removeAttribute("hidden");
+      el.classList.remove("hidden");
+      el.classList.add("is-open");
+      el.setAttribute("aria-hidden", "false");
+      el.style.display = "flex";
+    } else {
+      el.classList.remove("is-open");
+      el.classList.add("hidden");
+      el.hidden = true;
+      el.setAttribute("aria-hidden", "true");
+      el.style.display = "none";
+    }
   }
 
   function startFinishSequence() {
@@ -1916,25 +1934,17 @@
     if (dom.finishBoxTag) {
       dom.finishBoxTag.textContent = getSelectedBox().key;
     }
-    overlay.removeAttribute("hidden");
-    overlay.classList.remove("hidden");
-    overlay.classList.add("is-open");
-    overlay.setAttribute("aria-hidden", "false");
+    setOverlayOpen(dom.resultOverlay, false);
+    setOverlayOpen(overlay, true);
     if (dom.app) dom.app.classList.add("is-finishing");
+    gameState.finish.ignoreUntil = Date.now() + 220;
     showFinishStep(0);
     playSound("complete");
     haptic(10);
   }
 
   function hideFinishSequence() {
-    const overlay = dom.finishOverlay;
-    if (overlay) {
-      overlay.hidden = true;
-      overlay.classList.add("hidden");
-      overlay.classList.remove("is-open");
-      overlay.setAttribute("aria-hidden", "true");
-      delete overlay.dataset.step;
-    }
+    setOverlayOpen(dom.finishOverlay, false);
     if (dom.app) dom.app.classList.remove("is-finishing");
     gameState.finish = emptyFinishState();
     resetFinishVisuals();
@@ -1977,9 +1987,7 @@
     const id = step.id;
     if (dom.finishOverlay) {
       dom.finishOverlay.dataset.step = id;
-      dom.finishOverlay.classList.add("is-open");
-      dom.finishOverlay.classList.remove("hidden");
-      dom.finishOverlay.removeAttribute("hidden");
+      setOverlayOpen(dom.finishOverlay, true);
     }
     if (dom.finishStep) {
       dom.finishStep.textContent = String(index + 1).padStart(2, "0") + " / " + FINISH_STEPS.length;
@@ -2019,7 +2027,9 @@
       dom.finishTissue.classList.add("is-tucked");
       dom.finishTissue.style.transform = "translateY(0)";
     }
-    if (id === "shipped") completeShipped();
+    if (id === "shipped") {
+      if (finish.scanned) completeShipped();
+    }
   }
 
   function advanceFinish() {
@@ -2045,10 +2055,9 @@
 
   function completeShipped() {
     const finish = gameState.finish;
-    if (!finish || finish.completed) return;
+    if (!finish || finish.completed || !finish.scanned) return;
     finish.completed = true;
-    finish.scanned = true;
-    dom.finishShipped.classList.add("is-on");
+    if (dom.finishShipped) dom.finishShipped.classList.add("is-on");
     playSound("shipped");
     haptic(22);
     const pending = gameState.pendingResult;
@@ -2075,9 +2084,9 @@
     if (!dom.finishOverlay) return;
     const root = dom.finishOverlay;
     root.addEventListener("pointerdown", onFinishPointerDown, { passive: false });
-    root.addEventListener("pointermove", onFinishPointerMove, { passive: false });
-    root.addEventListener("pointerup", onFinishPointerUp);
-    root.addEventListener("pointercancel", onFinishPointerUp);
+    document.addEventListener("pointermove", onFinishPointerMove, { passive: false });
+    document.addEventListener("pointerup", onFinishPointerUp);
+    document.addEventListener("pointercancel", onFinishPointerUp);
   }
 
   function finishStepId() {
@@ -2088,6 +2097,7 @@
 
   function onFinishPointerDown(event) {
     if (!gameState.finish || !gameState.finish.active) return;
+    if (Date.now() < (gameState.finish.ignoreUntil || 0)) return;
     const id = finishStepId();
     if (id === "shipped") return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
@@ -2110,8 +2120,12 @@
 
     if (id === "close") {
       const flap = target.closest(".finish-flap");
-      if (!flap) return;
-      const side = flap === dom.finishFlapL ? "L" : "R";
+      const box = dom.finishBox.getBoundingClientRect();
+      const overBox = isPointInElement(event.clientX, event.clientY, dom.finishBox);
+      let side = null;
+      if (flap) side = flap === dom.finishFlapL ? "L" : "R";
+      else if (overBox) side = event.clientX < box.left + box.width / 2 ? "L" : "R";
+      if (!side) return;
       if ((side === "L" && finish.flapL) || (side === "R" && finish.flapR)) return;
       finish.gesture = {
         type: "flap",

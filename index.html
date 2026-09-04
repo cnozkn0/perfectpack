@@ -89,25 +89,21 @@
           PACK ORDER
         </button>
       </section>
+    </div>
 
-      <div
-        id="finish-overlay"
-        class="finish-overlay"
-        hidden
-        aria-hidden="true"
-      >
+    <div id="finish-overlay" class="finish-overlay" aria-hidden="true">
         <div class="finish-stage">
           <p class="finish-kicker" id="finish-kicker">Seal the box</p>
-          <ol class="finish-rail" id="finish-rail" aria-label="Packing finish steps">
-            <li data-finish="tissue">Tissue</li>
-            <li data-finish="card">Card</li>
-            <li data-finish="close">Close</li>
-            <li data-finish="sticker">Sticker</li>
-            <li data-finish="tape">Tape</li>
-            <li data-finish="label">Label</li>
-            <li data-finish="scan">Scan</li>
-            <li data-finish="shipped">Ship</li>
-          </ol>
+          <div class="finish-rail" id="finish-rail" aria-label="Packing finish steps">
+            <span data-finish="tissue">Tissue</span>
+            <span data-finish="card">Card</span>
+            <span data-finish="close">Close</span>
+            <span data-finish="sticker">Sticker</span>
+            <span data-finish="tape">Tape</span>
+            <span data-finish="label">Label</span>
+            <span data-finish="scan">Scan</span>
+            <span data-finish="shipped">Ship</span>
+          </div>
           <p class="finish-count" id="finish-step">01 / 08</p>
           <h2 id="finish-title">Tissue Paper</h2>
           <p class="finish-hint" id="finish-hint">Swipe down to tuck the tissue</p>
@@ -151,12 +147,8 @@
         </div>
       </div>
     </div>
-    </div>
 
-    <div id="drag-layer" class="drag-layer" aria-hidden="true"></div>
-    <div id="confetti" class="confetti" aria-hidden="true"></div>
-
-    <div id="result-overlay" class="overlay hidden" hidden>
+    <div id="result-overlay" class="overlay" hidden aria-hidden="true">
       <div class="result-sheet" role="dialog" aria-labelledby="result-title" aria-modal="true">
         <p class="result-kicker" id="result-kicker">Order packed</p>
         <h2 id="result-title">GREAT PACK</h2>
@@ -193,6 +185,8 @@
       </div>
     </div>
 
+    <div id="drag-layer" class="drag-layer" aria-hidden="true"></div>
+    <div id="confetti" class="confetti" aria-hidden="true"></div>
     <script src="game.js"></script>
   </body>
 </html>
