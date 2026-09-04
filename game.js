@@ -268,6 +268,8 @@
     packingReport: null,
     selectedProductId: null,
     protectionCost: 0,
+    pendingResult: null,
+    finish: null,
     timers: {
       reject: 0,
       snap: 0,
@@ -302,6 +304,26 @@
     dom.wrapOptions = $("wrap-options");
     dom.unwrapBtn = $("unwrap-btn");
     dom.packBtn = $("pack-btn");
+    dom.finishOverlay = $("finish-overlay");
+    dom.finishStep = $("finish-step");
+    dom.finishTitle = $("finish-title");
+    dom.finishHint = $("finish-hint");
+    dom.finishBox = $("finish-box");
+    dom.finishBoxTag = $("finish-box-tag");
+    dom.finishTissue = $("finish-tissue");
+    dom.finishCard = $("finish-card");
+    dom.finishCardSlot = $("finish-card-slot");
+    dom.finishFlapL = $("finish-flap-l");
+    dom.finishFlapR = $("finish-flap-r");
+    dom.finishSticker = $("finish-sticker");
+    dom.finishStickerSpot = $("finish-sticker-spot");
+    dom.finishTape = $("finish-tape");
+    dom.finishLabel = $("finish-label");
+    dom.finishLabelSpot = $("finish-label-spot");
+    dom.finishBarcode = $("finish-barcode");
+    dom.finishScanner = $("finish-scanner");
+    dom.finishShipped = $("finish-shipped");
+    dom.finishProps = $("finish-props");
     dom.dragLayer = $("drag-layer");
     dom.confetti = $("confetti");
     dom.resultOverlay = $("result-overlay");
@@ -509,13 +531,16 @@
       xp += CONFIG.SPACE_MASTER_XP;
     }
 
-    gameState.money += money;
-    gameState.xp += xp;
+    gameState.pendingResult = {
+      score: score,
+      money: money,
+      xp: xp,
+      perfect: perfect,
+      spaceMaster: spaceMaster,
+      protection: protection,
+    };
 
-    playSound(perfect || spaceMaster ? "perfect" : "complete");
-    if (perfect || spaceMaster) spawnConfetti();
-
-    showResult(score, money, xp, perfect, spaceMaster, protection);
+    startFinishSequence();
     renderOrder();
   }
 
@@ -538,6 +563,7 @@
     renderBoxPicker();
     spawnProducts();
     clearSelection();
+    hideFinishSequence();
     updatePackButton();
   }
 
@@ -563,6 +589,7 @@
     });
 
     updateShelfHint();
+    refreshProtectionCost();
   }
 
   function makeProduct(typeId) {
@@ -1030,6 +1057,7 @@
   // ===========================================================================
   function startDrag(event, product) {
     if (gameState.packing) return;
+    if (gameState.finish && gameState.finish.active) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     if (gameState.drag) return;
     if (event.target.closest(".rotate-btn, .compress-btn")) return;
@@ -1806,6 +1834,7 @@
         if (event.target === dom.packArea) clearSelection();
       });
     }
+    bindFinishUi();
     dom.boxPicker.addEventListener("click", function (event) {
       const btn = event.target.closest("[data-box]");
       if (btn) selectBox(btn.getAttribute("data-box"));
@@ -1841,6 +1870,437 @@
     });
   }
 
+  // ===========================================================================
+  // FINISH SEQUENCE
+  // After PACK ORDER: tissue → card → flaps → sticker → tape → label → scan → shipped
+  // ===========================================================================
+  const FINISH_STEPS = [
+    { id: "tissue", title: "Tissue Paper", hint: "Swipe down to tuck the tissue" },
+    { id: "card", title: "Thank You Card", hint: "Drop the card into the box" },
+    { id: "close", title: "Close Box", hint: "Fold both flaps shut" },
+    { id: "sticker", title: "Sticker", hint: "Peel, then stick it on the box" },
+    { id: "tape", title: "Tape", hint: "Swipe left to right across the box" },
+    { id: "label", title: "Shipping Label", hint: "Place the label on the box" },
+    { id: "scan", title: "Barcode Scan", hint: "Tap the barcode or drag the scanner" },
+    { id: "shipped", title: "Shipped", hint: "On its way" },
+  ];
+
+  function emptyFinishState() {
+    return {
+      active: false,
+      step: 0,
+      tissue: 0,
+      cardPlaced: false,
+      flapL: false,
+      flapR: false,
+      stickerPeeled: false,
+      stickerPlaced: false,
+      tape: 0,
+      labelPlaced: false,
+      scanned: false,
+      completed: false,
+      gesture: null,
+    };
+  }
+
+  function startFinishSequence() {
+    gameState.finish = emptyFinishState();
+    gameState.finish.active = true;
+    resetFinishVisuals();
+    if (dom.finishBoxTag) {
+      dom.finishBoxTag.textContent = getSelectedBox().key;
+    }
+    if (dom.finishOverlay) {
+      dom.finishOverlay.hidden = false;
+      dom.finishOverlay.classList.remove("hidden");
+    }
+    showFinishStep(0);
+    playSound("complete");
+    haptic(10);
+  }
+
+  function hideFinishSequence() {
+    if (dom.finishOverlay) {
+      dom.finishOverlay.hidden = true;
+      dom.finishOverlay.classList.add("hidden");
+      delete dom.finishOverlay.dataset.step;
+    }
+    gameState.finish = emptyFinishState();
+    resetFinishVisuals();
+  }
+
+  function resetFinishVisuals() {
+    if (!dom.finishBox) return;
+    dom.finishTissue.classList.remove("is-tucked");
+    dom.finishTissue.style.transform = "";
+    dom.finishCardSlot.classList.remove("is-filled");
+    dom.finishCardSlot.innerHTML = "";
+    dom.finishFlapL.classList.remove("is-closed");
+    dom.finishFlapR.classList.remove("is-closed");
+    dom.finishFlapL.style.transform = "";
+    dom.finishFlapR.style.transform = "";
+    dom.finishBox.classList.remove("is-closing", "is-scan", "is-pop");
+    dom.finishTape.classList.remove("is-on");
+    dom.finishTape.style.right = "92%";
+    dom.finishStickerSpot.classList.remove("is-on");
+    dom.finishStickerSpot.textContent = "";
+    dom.finishLabelSpot.classList.remove("is-on");
+    dom.finishLabelSpot.innerHTML = "";
+    dom.finishBarcode.classList.remove("is-scanned");
+    dom.finishShipped.classList.remove("is-on");
+    ["finishCard", "finishSticker", "finishLabel", "finishScanner"].forEach(function (key) {
+      const el = dom[key];
+      if (!el) return;
+      el.classList.remove("is-hidden", "dragging", "is-peeling");
+      el.style.left = "";
+      el.style.top = "";
+      el.style.position = "";
+    });
+  }
+
+  function showFinishStep(index) {
+    const finish = gameState.finish;
+    finish.step = index;
+    finish.gesture = null;
+    const step = FINISH_STEPS[index];
+    const id = step.id;
+    dom.finishOverlay.dataset.step = id;
+    dom.finishStep.textContent = String(index + 1).padStart(2, "0") + " / " + FINISH_STEPS.length;
+    dom.finishTitle.textContent = id === "shipped" ? "SHIPPED ✓" : step.title;
+    dom.finishHint.textContent = step.hint;
+
+    dom.finishCard.classList.toggle("is-hidden", id !== "card" || finish.cardPlaced);
+    dom.finishSticker.classList.toggle("is-hidden", id !== "sticker" || finish.stickerPlaced);
+    dom.finishLabel.classList.toggle("is-hidden", id !== "label" || finish.labelPlaced);
+    dom.finishScanner.classList.toggle("is-hidden", id !== "scan" || finish.scanned);
+    dom.finishBox.classList.toggle("is-closing", id === "close" || index > 2);
+    dom.finishBox.classList.toggle("is-scan", id === "scan" || index >= 6);
+    if (index > 0) {
+      dom.finishTissue.classList.add("is-tucked");
+      dom.finishTissue.style.transform = "translateY(0)";
+    }
+    if (id === "shipped") completeShipped();
+  }
+
+  function advanceFinish() {
+    haptic(8);
+    const next = gameState.finish.step + 1;
+    if (next >= FINISH_STEPS.length) return;
+    showFinishStep(next);
+  }
+
+  function popFinishBox() {
+    if (!dom.finishBox) return;
+    dom.finishBox.classList.remove("is-pop");
+    void dom.finishBox.offsetWidth;
+    dom.finishBox.classList.add("is-pop");
+  }
+
+  function succeedFinish(soundId) {
+    playSound(soundId);
+    haptic(12);
+    popFinishBox();
+    window.setTimeout(advanceFinish, 320);
+  }
+
+  function completeShipped() {
+    const finish = gameState.finish;
+    if (!finish || finish.completed) return;
+    finish.completed = true;
+    finish.scanned = true;
+    dom.finishShipped.classList.add("is-on");
+    playSound("shipped");
+    haptic(22);
+    const pending = gameState.pendingResult;
+    window.setTimeout(function () {
+      if (!pending) return;
+      gameState.money += pending.money;
+      gameState.xp += pending.xp;
+      if (pending.perfect || pending.spaceMaster) spawnConfetti();
+      hideFinishSequence();
+      showResult(
+        pending.score,
+        pending.money,
+        pending.xp,
+        pending.perfect,
+        pending.spaceMaster,
+        pending.protection
+      );
+      renderOrder();
+      gameState.pendingResult = null;
+    }, 1300);
+  }
+
+  function bindFinishUi() {
+    if (!dom.finishOverlay) return;
+    const root = dom.finishOverlay;
+    root.addEventListener("pointerdown", onFinishPointerDown, { passive: false });
+    root.addEventListener("pointermove", onFinishPointerMove, { passive: false });
+    root.addEventListener("pointerup", onFinishPointerUp);
+    root.addEventListener("pointercancel", onFinishPointerUp);
+  }
+
+  function finishStepId() {
+    return gameState.finish && gameState.finish.active
+      ? FINISH_STEPS[gameState.finish.step].id
+      : "";
+  }
+
+  function onFinishPointerDown(event) {
+    if (!gameState.finish || !gameState.finish.active) return;
+    const id = finishStepId();
+    if (id === "shipped") return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.preventDefault();
+    resumeAudio();
+
+    const finish = gameState.finish;
+    const target = event.target;
+
+    if (id === "tissue") {
+      finish.gesture = {
+        type: "tissue",
+        pointerId: event.pointerId,
+        startY: event.clientY,
+        progress: finish.tissue || 0,
+      };
+      captureFinish(event);
+      return;
+    }
+
+    if (id === "close") {
+      const flap = target.closest(".finish-flap");
+      if (!flap) return;
+      const side = flap === dom.finishFlapL ? "L" : "R";
+      if ((side === "L" && finish.flapL) || (side === "R" && finish.flapR)) return;
+      finish.gesture = {
+        type: "flap",
+        pointerId: event.pointerId,
+        startY: event.clientY,
+        flap: side,
+        moved: false,
+      };
+      captureFinish(event);
+      return;
+    }
+
+    if (id === "tape") {
+      if (!isPointInElement(event.clientX, event.clientY, dom.finishBox)) return;
+      const box = dom.finishBox.getBoundingClientRect();
+      finish.gesture = {
+        type: "tape",
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        boxWidth: box.width,
+        startProgress: finish.tape || 0,
+        lastTick: Math.floor((finish.tape || 0) * 6),
+      };
+      captureFinish(event);
+      return;
+    }
+
+    if (id === "scan" && target.closest("#finish-barcode")) {
+      finishScan();
+      return;
+    }
+
+    const prop = target.closest(".finish-prop");
+    if (!prop || prop.classList.contains("is-hidden")) return;
+    if (id === "sticker" && prop.id === "finish-sticker" && !finish.stickerPeeled) {
+      finish.stickerPeeled = true;
+      prop.classList.add("is-peeling");
+      playSound("peel");
+      haptic(6);
+    }
+    const rect = prop.getBoundingClientRect();
+    prop.classList.add("dragging");
+    prop.style.left = rect.left + "px";
+    prop.style.top = rect.top + "px";
+    finish.gesture = {
+      type: "drag",
+      pointerId: event.pointerId,
+      prop: prop,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+    };
+    captureFinish(event);
+  }
+
+  function captureFinish(event) {
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch (err) {
+      /* optional */
+    }
+  }
+
+  function onFinishPointerMove(event) {
+    const finish = gameState.finish;
+    if (!finish || !finish.gesture || event.pointerId !== finish.gesture.pointerId) return;
+    event.preventDefault();
+    const g = finish.gesture;
+    const id = finishStepId();
+
+    if (g.type === "tissue") {
+      const delta = event.clientY - g.startY;
+      const progress = clamp(g.progress + delta / 140, 0, 1);
+      finish.tissue = progress;
+      dom.finishTissue.style.transform = "translateY(" + (-92 + progress * 92) + "%)";
+      return;
+    }
+
+    if (g.type === "flap") {
+      const dy = event.clientY - g.startY;
+      if (Math.abs(dy) > 8) g.moved = true;
+      const p = clamp(dy / 90, 0, 1);
+      const flapEl = g.flap === "L" ? dom.finishFlapL : dom.finishFlapR;
+      flapEl.style.transform = "rotateX(" + (-78 + p * 78) + "deg)";
+      return;
+    }
+
+    if (g.type === "tape") {
+      const dx = event.clientX - g.startX;
+      const progress = clamp(g.startProgress + dx / g.boxWidth, 0, 1);
+      finish.tape = progress;
+      dom.finishTape.classList.add("is-on");
+      dom.finishTape.style.right = 100 - progress * 92 + "%";
+      const tick = Math.floor(progress * 6);
+      if (tick > g.lastTick) {
+        g.lastTick = tick;
+        playSound("tape");
+        haptic(4);
+      }
+      return;
+    }
+
+    if (g.type === "drag") {
+      g.prop.classList.add("dragging");
+      g.prop.style.left = event.clientX - g.offsetX + "px";
+      g.prop.style.top = event.clientY - g.offsetY + "px";
+      if (id === "scan") {
+        const bar = dom.finishBarcode.getBoundingClientRect();
+        const wand = g.prop.getBoundingClientRect();
+        if (rectsOverlap(bar, wand)) finishScan();
+      }
+    }
+  }
+
+  function onFinishPointerUp(event) {
+    const finish = gameState.finish;
+    if (!finish || !finish.gesture || event.pointerId !== finish.gesture.pointerId) return;
+    const g = finish.gesture;
+    finish.gesture = null;
+    const id = finishStepId();
+
+    if (g.type === "tissue") {
+      if (finish.tissue >= 0.62) {
+        dom.finishTissue.classList.add("is-tucked");
+        dom.finishTissue.style.transform = "translateY(0)";
+        succeedFinish("tissue");
+      } else {
+        finish.tissue = 0;
+        dom.finishTissue.style.transform = "";
+        playSound("error");
+      }
+      return;
+    }
+
+    if (g.type === "flap") {
+      const dy = event.clientY - g.startY;
+      const flapEl = g.flap === "L" ? dom.finishFlapL : dom.finishFlapR;
+      flapEl.style.transform = "";
+      if (dy < -28) return;
+      closeFinishFlap(g.flap);
+      return;
+    }
+
+    if (g.type === "tape") {
+      if (finish.tape >= 0.78) {
+        dom.finishTape.style.right = "8%";
+        succeedFinish("tape");
+      } else {
+        playSound("error");
+      }
+      return;
+    }
+
+    if (g.type === "drag") {
+      const prop = g.prop;
+      const propRect = prop.getBoundingClientRect();
+      const boxRect = dom.finishBox.getBoundingClientRect();
+      const overBox =
+        isPointInElement(event.clientX, event.clientY, dom.finishBox) ||
+        rectsOverlap(propRect, boxRect);
+      prop.classList.remove("dragging");
+      prop.style.left = "";
+      prop.style.top = "";
+      prop.style.position = "";
+
+      if (id === "card" && overBox) {
+        finish.cardPlaced = true;
+        prop.classList.add("is-hidden");
+        dom.finishCardSlot.classList.add("is-filled");
+        dom.finishCardSlot.innerHTML = "<span>Thank you</span>";
+        succeedFinish("card");
+        return;
+      }
+      if (id === "sticker" && overBox && finish.stickerPeeled) {
+        finish.stickerPlaced = true;
+        prop.classList.add("is-hidden");
+        dom.finishStickerSpot.classList.add("is-on");
+        dom.finishStickerSpot.textContent = "PP";
+        succeedFinish("sticker");
+        return;
+      }
+      if (id === "label" && overBox) {
+        finish.labelPlaced = true;
+        prop.classList.add("is-hidden");
+        dom.finishLabelSpot.classList.add("is-on");
+        dom.finishLabelSpot.innerHTML = "<span>SHIP TO</span><em>Cozy Shop</em>";
+        succeedFinish("label");
+        return;
+      }
+    }
+  }
+
+  function rectsOverlap(a, b) {
+    return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+  }
+
+  function closeFinishFlap(side) {
+    const finish = gameState.finish;
+    if (!finish) return;
+    const el = side === "L" ? dom.finishFlapL : dom.finishFlapR;
+    if (side === "L") {
+      if (finish.flapL) return;
+      finish.flapL = true;
+    } else {
+      if (finish.flapR) return;
+      finish.flapR = true;
+    }
+    el.style.transform = "";
+    el.classList.add("is-closed");
+    playSound("flap");
+    haptic(10);
+    popFinishBox();
+    if (finish.flapL && finish.flapR) {
+      window.setTimeout(advanceFinish, 320);
+    }
+  }
+
+  function finishScan() {
+    const finish = gameState.finish;
+    if (!finish || finish.scanned || finish.completed) return;
+    finish.scanned = true;
+    finish.gesture = null;
+    dom.finishBarcode.classList.add("is-scanned");
+    if (dom.finishScanner) dom.finishScanner.classList.add("is-hidden");
+    playSound("scan");
+    haptic(16);
+    popFinishBox();
+    window.setTimeout(advanceFinish, 360);
+  }
+
   function init() {
     cacheDom();
     bindUi();
@@ -1861,9 +2321,30 @@
   }
 
   // ===========================================================================
-  // AUDIO FUNCTIONS
+  // AUDIO
+  // Central manager: playSound("tape") etc. Placeholder synths now.
+  // Drop a file path into SOUND_BANK[id].src later (e.g. "sounds/tape.mp3")
+  // and call sites stay the same.
   // ===========================================================================
   let audioCtx = null;
+  const audioBuffers = Object.create(null);
+
+  const SOUND_BANK = {
+    place: { src: null, synth: "place" },
+    error: { src: null, synth: "error" },
+    complete: { src: null, synth: "complete" },
+    perfect: { src: null, synth: "perfect" },
+    rotate: { src: null, synth: "rotate" },
+    tissue: { src: null, synth: "tissue" },
+    card: { src: null, synth: "card" },
+    flap: { src: null, synth: "flap" },
+    peel: { src: null, synth: "peel" },
+    tape: { src: null, synth: "tape" },
+    sticker: { src: null, synth: "sticker" },
+    label: { src: null, synth: "label" },
+    scan: { src: null, synth: "scan" },
+    shipped: { src: null, synth: "shipped" },
+  };
 
   function getAudioContext() {
     if (!audioCtx) {
@@ -1876,47 +2357,159 @@
 
   function resumeAudio() {
     const ctx = getAudioContext();
-    if (ctx && ctx.state === "suspended") ctx.resume();
-  }
-
-  function tone(freq, duration, type, gainValue, delay) {
-    const ctx = getAudioContext();
-    if (!ctx || !gameState.soundEnabled) return;
-    resumeAudio();
-
-    const start = ctx.currentTime + (delay || 0);
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type || "sine";
-    osc.frequency.setValueAtTime(freq, start);
-    gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(gainValue || 0.07, start + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(start);
-    osc.stop(start + duration + 0.02);
+    if (ctx && ctx.state === "suspended") ctx.resume().catch(function () {});
   }
 
   function playSound(kind) {
     if (!gameState.soundEnabled) return;
-    if (kind === "place") {
-      tone(720, 0.07, "triangle", 0.05);
-      tone(980, 0.05, "sine", 0.03, 0.04);
-    } else if (kind === "error") {
-      tone(180, 0.14, "square", 0.05);
-      tone(140, 0.12, "square", 0.03, 0.05);
-    } else if (kind === "complete") {
-      tone(392, 0.12, "sine", 0.06);
-      tone(523, 0.12, "sine", 0.06, 0.1);
-      tone(659, 0.18, "sine", 0.07, 0.2);
-    } else if (kind === "perfect") {
-      tone(523, 0.1, "sine", 0.05);
-      tone(659, 0.1, "sine", 0.05, 0.08);
-      tone(784, 0.12, "sine", 0.06, 0.16);
-      tone(1046, 0.2, "triangle", 0.05, 0.26);
-    } else if (kind === "rotate") {
-      tone(840, 0.05, "triangle", 0.035);
+    const entry = SOUND_BANK[kind];
+    if (!entry) return;
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    resumeAudio();
+    if (entry.src) {
+      playFileSound(ctx, kind, entry.src, entry.synth);
+      return;
+    }
+    playSynth(ctx, entry.synth || kind);
+  }
+
+  function playFileSound(ctx, kind, src, fallback) {
+    const playBuffer = function (buffer) {
+      const srcNode = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      srcNode.buffer = buffer;
+      gain.gain.value = 0.85;
+      srcNode.connect(gain);
+      gain.connect(ctx.destination);
+      srcNode.start();
+    };
+    if (audioBuffers[kind]) {
+      playBuffer(audioBuffers[kind]);
+      return;
+    }
+    fetch(src)
+      .then(function (res) {
+        return res.arrayBuffer();
+      })
+      .then(function (data) {
+        return ctx.decodeAudioData(data);
+      })
+      .then(function (buffer) {
+        audioBuffers[kind] = buffer;
+        playBuffer(buffer);
+      })
+      .catch(function () {
+        playSynth(ctx, fallback || kind);
+      });
+  }
+
+  function playSynth(ctx, synth) {
+    const now = ctx.currentTime;
+
+    function tone(type, freq, dur, peak, slideTo, delay) {
+      const start = now + (delay || 0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, start);
+      if (slideTo) {
+        osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), start + dur);
+      }
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(peak, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + dur + 0.02);
+    }
+
+    function noiseBurst(dur, peak, filterFreq, delay) {
+      const start = now + (delay || 0);
+      const frames = Math.max(1, Math.floor(ctx.sampleRate * dur));
+      const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < frames; i += 1) data[i] = Math.random() * 2 - 1;
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = filterFreq;
+      filter.Q.value = 0.75;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(peak, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      src.start(start);
+      src.stop(start + dur + 0.02);
+    }
+
+    switch (synth) {
+      case "place":
+        tone("triangle", 720, 0.07, 0.05, null, 0);
+        tone("sine", 980, 0.05, 0.03, null, 0.04);
+        break;
+      case "error":
+        tone("square", 180, 0.14, 0.05, 90, 0);
+        tone("square", 140, 0.12, 0.03, null, 0.05);
+        break;
+      case "complete":
+        tone("sine", 392, 0.12, 0.06, null, 0);
+        tone("sine", 523, 0.12, 0.06, null, 0.1);
+        tone("sine", 659, 0.18, 0.07, null, 0.2);
+        break;
+      case "perfect":
+        tone("sine", 523, 0.1, 0.05, null, 0);
+        tone("sine", 659, 0.1, 0.05, null, 0.08);
+        tone("sine", 784, 0.12, 0.06, null, 0.16);
+        tone("triangle", 1046, 0.2, 0.05, null, 0.26);
+        break;
+      case "rotate":
+        tone("triangle", 840, 0.05, 0.035, 980, 0);
+        break;
+      case "tissue":
+        noiseBurst(0.22, 0.07, 2400, 0);
+        tone("sine", 880, 0.12, 0.04, 420, 0);
+        break;
+      case "card":
+        tone("triangle", 520, 0.14, 0.09, 340, 0);
+        noiseBurst(0.08, 0.04, 1800, 0);
+        break;
+      case "flap":
+        tone("sine", 210, 0.16, 0.1, 140, 0);
+        noiseBurst(0.1, 0.05, 400, 0);
+        break;
+      case "peel":
+        noiseBurst(0.2, 0.08, 3200, 0);
+        tone("sine", 980, 0.1, 0.03, 1400, 0);
+        break;
+      case "tape":
+        noiseBurst(0.12, 0.06, 1600, 0);
+        tone("triangle", 360, 0.08, 0.04, 300, 0);
+        break;
+      case "sticker":
+        tone("sine", 740, 0.16, 0.09, 520, 0);
+        noiseBurst(0.08, 0.05, 2200, 0);
+        break;
+      case "label":
+        tone("triangle", 480, 0.18, 0.1, 260, 0);
+        noiseBurst(0.06, 0.04, 1400, 0);
+        break;
+      case "scan":
+        tone("square", 1800, 0.07, 0.08, 1400, 0);
+        tone("square", 2200, 0.08, 0.07, 1900, 0.07);
+        break;
+      case "shipped":
+        tone("sine", 523.25, 0.14, 0.1, null, 0);
+        tone("sine", 659.25, 0.16, 0.1, null, 0.12);
+        tone("sine", 783.99, 0.28, 0.12, 1046.5, 0.26);
+        break;
+      default:
+        tone("sine", 500, 0.12, 0.08, 400, 0);
     }
   }
 

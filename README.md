@@ -11,9 +11,12 @@ Open `index.html` in a browser — no build step, no backend, no extra assets.
 3. Tap an item, or press **↻**, to rotate it 90°.
 4. Fit every required item. Extra items cannot be added.
 5. When the layout is valid, **PACK ORDER** lights up.
-6. Score 90+ for a **PERFECT PACK** bonus, then tap **NEXT ORDER**.
+6. Run the packing finish sequence (tissue, card, flaps, sticker, tape, label, scan).
+7. **SHIPPED ✓**, then the score sheet. Score 90+ for a **PERFECT PACK** bonus, then tap **NEXT ORDER**.
 
-There are 10 preset orders that get a little tighter as you go. Money and XP carry across the session.
+There are 18 preset orders that get a little tighter as you go. Money and XP carry across the session.
+
+After **PACK ORDER** you seal the box by hand — swipe tissue, drop a thank-you card, fold both flaps, peel a sticker, tape left-to-right, place the label, then scan. Sounds are generated with the Web Audio API (`playSound("tape")` and friends in `SOUND_BANK`); drop a file path on `SOUND_BANK[id].src` later to swap in real audio without changing call sites. The HUD mute toggle still works during the sequence.
 
 ## Run locally
 
@@ -31,9 +34,9 @@ Best on a phone in portrait, or a desktop window around **390×844**.
 
 | File | Role |
 | --- | --- |
-| `index.html` | Shell, HUD, box, shelf, result sheet |
+| `index.html` | Shell, HUD, box, shelf, finish sequence, result sheet |
 | `style.css` | Mobile-first layout, safe-area insets, animations |
-| `game.js` | `PRODUCT_TYPES`, `ORDERS`, `gameState`, drag/rotate/score |
+| `game.js` | `PRODUCT_TYPES`, `ORDERS`, `gameState`, drag/rotate/wrap/score, finish sequence, `playSound` |
 
 To add content later without rewriting the loop:
 

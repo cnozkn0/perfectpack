@@ -94,6 +94,51 @@
     <div id="drag-layer" class="drag-layer" aria-hidden="true"></div>
     <div id="confetti" class="confetti" aria-hidden="true"></div>
 
+    <div id="finish-overlay" class="finish-overlay hidden" hidden>
+      <div class="finish-stage">
+        <p class="finish-kicker" id="finish-step">1 / 8</p>
+        <h2 id="finish-title">Tissue Paper</h2>
+        <p class="finish-hint" id="finish-hint">Swipe down to tuck the tissue</p>
+
+        <div class="finish-box" id="finish-box">
+          <div class="finish-flap finish-flap-l" id="finish-flap-l"></div>
+          <div class="finish-flap finish-flap-r" id="finish-flap-r"></div>
+          <div class="finish-lid" id="finish-lid">
+            <span class="finish-box-tag" id="finish-box-tag">M</span>
+          </div>
+          <div class="finish-cavity" id="finish-cavity">
+            <div class="finish-goods" aria-hidden="true"></div>
+            <div class="finish-tissue" id="finish-tissue"></div>
+            <div class="finish-card-slot" id="finish-card-slot"></div>
+          </div>
+          <div class="finish-tape" id="finish-tape"></div>
+          <div class="finish-sticker-spot" id="finish-sticker-spot"></div>
+          <div class="finish-label-spot" id="finish-label-spot"></div>
+          <div class="finish-barcode" id="finish-barcode" aria-label="Barcode"></div>
+          <div class="finish-shipped" id="finish-shipped">
+            <strong>SHIPPED</strong>
+            <span>✓</span>
+          </div>
+        </div>
+
+        <div class="finish-props" id="finish-props">
+          <div class="finish-prop finish-card" id="finish-card" aria-label="Thank you card">
+            <span>Thank you</span>
+          </div>
+          <div class="finish-prop finish-sticker" id="finish-sticker" aria-label="Shop sticker">
+            <span>PP</span>
+          </div>
+          <div class="finish-prop finish-label" id="finish-label" aria-label="Shipping label">
+            <span>SHIP TO</span>
+            <em>Cozy Shop</em>
+          </div>
+          <div class="finish-prop finish-scanner" id="finish-scanner" aria-label="Barcode scanner">
+            <span>SCAN</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="result-overlay" class="overlay hidden" hidden>
       <div class="result-sheet" role="dialog" aria-labelledby="result-title" aria-modal="true">
         <p class="result-kicker" id="result-kicker">Order packed</p>
