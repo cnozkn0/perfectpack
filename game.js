@@ -1012,6 +1012,28 @@
     if (dom.box) {
       dom.box.setAttribute("data-size", box.id);
     }
+    scheduleFitBox();
+  }
+
+  function scheduleFitBox() {
+    window.requestAnimationFrame(function () {
+      window.requestAnimationFrame(fitBoxToTable);
+    });
+  }
+
+  function fitBoxToTable() {
+    if (!dom.box || !dom.packArea) return;
+    const surface = document.querySelector(".table-surface");
+    if (!surface) return;
+    const box = getSelectedBox();
+    const outerW = box.width + 24;
+    const outerH = box.height + 40;
+    const availW = Math.max(120, surface.clientWidth - 16);
+    const availH = Math.max(120, surface.clientHeight - 16);
+    let scale = Math.min(availW / outerW, availH / outerH);
+    scale = clamp(Number.isFinite(scale) ? scale : 1, 0.78, 1.75);
+    dom.box.style.transform = "scale(" + scale + ")";
+    dom.box.style.transformOrigin = "center center";
   }
 
   function applySelectedBox(boxId, options) {
@@ -1087,6 +1109,7 @@
 
     renderRequestBlock();
     renderShopStats();
+    scheduleFitBox();
 
     dom.cashValue.textContent = formatMoney(gameState.cash);
     const progress = levelProgress(gameState.xp);
@@ -3183,6 +3206,10 @@
       const btn = event.target.closest("[data-box]");
       if (btn) selectBox(btn.getAttribute("data-box"));
     });
+    window.addEventListener("resize", scheduleFitBox);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", scheduleFitBox);
+    }
 
     document.addEventListener("pointermove", moveProduct, { passive: false });
     document.addEventListener("pointerup", dropProduct);
