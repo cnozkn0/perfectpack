@@ -15,7 +15,7 @@ Open `index.html` in a browser — no build step, no backend, no extra assets.
 7. Run the packing finish sequence (tissue, card, flaps, sticker, tape, label, scan).
 8. **SHIPPED ✓**, then the score sheet. Pack Score is a weighted mix of Accuracy (25%), Fit (20%), Protection (20%), Cost (15%), and Aesthetic (20%). **98+** is a **PERFECT PACK ✨** (confetti + haptic). Badges: SPACE MASTER, PROTECTOR, BUDGET MASTER, STYLIST, FLAWLESS.
 
-There are 18 preset orders that get a little tighter as you go. Money and XP carry across the session.
+You start with **$100.00**. Each SKU has a `salePrice` and `productCost`. After shipping, profit is revenue − product cost − packaging (box + wrap) − shipping, plus a tip (**+5%** at 90+, **+10%** on a Perfect Pack). Seriously weak protection takes a deterministic refund, not a dice roll. Cash, XP, level, order count, perfect packs, and shop rating live on `gameState` for later shop upgrades — the level curve grows (`100 × 1.32^(level-1)` XP per level). XP: **+50** per order, **+20** at 90+, **+50** more for Perfect Pack.
 
 After **PACK ORDER** you seal the box by hand — swipe tissue, drop a thank-you card, fold both flaps, peel a sticker, tape left-to-right, place the label, then scan. Sounds are generated with the Web Audio API (`playSound("tape")` and friends in `SOUND_BANK`); drop a file path on `SOUND_BANK[id].src` later to swap in real audio without changing call sites. The HUD mute toggle still works during the sequence.
 

@@ -16,18 +16,20 @@
     GREAT_MIN: 80,
     GOOD_MIN: 70,
     OKAY_MIN: 60,
-    PERFECT_MONEY_BONUS: 50,
-    PERFECT_XP_BONUS: 20,
-    SPACE_MASTER_MONEY: 30,
-    SPACE_MASTER_XP: 15,
-    PROTECTOR_MONEY: 18,
-    PROTECTOR_XP: 8,
-    BUDGET_MASTER_MONEY: 18,
-    BUDGET_MASTER_XP: 8,
-    STYLIST_MONEY: 18,
-    STYLIST_XP: 8,
-    FLAWLESS_MONEY: 25,
-    FLAWLESS_XP: 12,
+    STARTING_CASH: 100,
+    XP_ORDER: 50,
+    XP_HIGH_SCORE: 20,
+    XP_PERFECT: 50,
+    XP_LEVEL_BASE: 100,
+    XP_LEVEL_GROWTH: 1.32,
+    TIP_HIGH_SCORE: 0.05,
+    TIP_PERFECT: 0.1,
+    REFUND_HARD: 0.5,
+    REFUND_SOFT: 0.25,
+    REFUND_HARD_BELOW: 40,
+    REFUND_SOFT_BELOW: 55,
+    SHIPPING_BASE: 4,
+    SHIPPING_PER_WEIGHT: 0.6,
     SCORE_WEIGHTS: {
       accuracy: 0.25,
       fit: 0.2,
@@ -63,7 +65,8 @@
       uprightOnly: true,
       requiredProtection: 4,
       weight: 0.4,
-      baseValue: 8,
+      salePrice: 14,
+      productCost: 5,
     }),
     mug: productType({
       id: "mug",
@@ -74,7 +77,8 @@
       fragile: true,
       requiredProtection: 8,
       weight: 0.95,
-      baseValue: 10,
+      salePrice: 18,
+      productCost: 7,
     }),
     tshirt: productType({
       id: "tshirt",
@@ -85,7 +89,8 @@
       soft: true,
       compressible: true,
       weight: 0.25,
-      baseValue: 14,
+      salePrice: 22,
+      productCost: 8,
     }),
     perfume: productType({
       id: "perfume",
@@ -98,7 +103,8 @@
       uprightOnly: true,
       requiredProtection: 7,
       weight: 0.35,
-      baseValue: 22,
+      salePrice: 36,
+      productCost: 14,
     }),
     notebook: productType({
       id: "notebook",
@@ -108,7 +114,8 @@
       icon: "📓",
       bendable: false,
       weight: 0.5,
-      baseValue: 12,
+      salePrice: 16,
+      productCost: 6,
     }),
     socks: productType({
       id: "socks",
@@ -119,7 +126,8 @@
       soft: true,
       compressible: true,
       weight: 0.15,
-      baseValue: 6,
+      salePrice: 10,
+      productCost: 3,
     }),
     jewelry_box: productType({
       id: "jewelry_box",
@@ -129,7 +137,8 @@
       icon: "💎",
       fragile: false,
       weight: 0.2,
-      baseValue: 28,
+      salePrice: 48,
+      productCost: 18,
     }),
     poster: productType({
       id: "poster",
@@ -139,7 +148,8 @@
       icon: "📜",
       bendable: false,
       weight: 0.12,
-      baseValue: 9,
+      salePrice: 14,
+      productCost: 4,
     }),
   };
 
@@ -154,7 +164,8 @@
         bendable: true,
         requiredProtection: 0,
         weight: 0.3,
-        baseValue: 10,
+        salePrice: 12,
+        productCost: 4,
       },
       spec
     );
@@ -276,8 +287,12 @@
     selectedBoxId: "medium",
     boxCost: BOX_TYPES.medium.cost,
     shippingMultiplier: BOX_TYPES.medium.shippingMultiplier,
-    money: 0,
+    cash: CONFIG.STARTING_CASH,
     xp: 0,
+    level: 1,
+    totalOrders: 0,
+    perfectPacks: 0,
+    shopRating: 5,
     soundEnabled: true,
     products: [],
     nextInstanceId: 1,
@@ -303,8 +318,10 @@
 
   function cacheDom() {
     dom.app = $("app");
-    dom.moneyValue = $("money-value");
+    dom.cashValue = $("cash-value");
+    dom.levelValue = $("level-value");
     dom.xpValue = $("xp-value");
+    dom.shopRating = $("shop-rating");
     dom.soundToggle = $("sound-toggle");
     dom.soundIcon = $("sound-icon");
     dom.orderTitle = $("order-title");
@@ -355,9 +372,9 @@
     dom.scoreRing = $("score-ring");
     dom.scoreCats = $("score-cats");
     dom.resultBadges = $("result-badges");
-    dom.resultMoney = $("result-money");
+    dom.resultLedger = $("result-ledger");
     dom.resultXp = $("result-xp");
-    dom.resultBonus = $("result-bonus");
+    dom.resultLevelUp = $("result-level-up");
     dom.nextBtn = $("next-btn");
   }
 
@@ -385,6 +402,24 @@
 
   function formatBoxPrice(cost) {
     return "$" + cost.toFixed(2);
+  }
+
+  function cents(n) {
+    return Math.round(n * 100) / 100;
+  }
+
+  function formatMoney(n) {
+    const value = cents(n);
+    const abs = Math.abs(value).toFixed(2);
+    if (value < 0) return "-$" + abs;
+    return "$" + abs;
+  }
+
+  function formatMoneyDelta(n) {
+    const value = cents(n);
+    if (value > 0) return "+$" + value.toFixed(2);
+    if (value < 0) return "-$" + Math.abs(value).toFixed(2);
+    return "$0.00";
   }
 
   function getType(typeId) {
@@ -510,8 +545,15 @@
       dom.orderItems.appendChild(li);
     });
 
-    dom.moneyValue.textContent = String(gameState.money);
-    dom.xpValue.textContent = String(gameState.xp);
+    dom.cashValue.textContent = formatMoney(gameState.cash);
+    const progress = levelProgress(gameState.xp);
+    if (dom.levelValue) {
+      dom.levelValue.textContent = "Lv " + progress.level;
+    }
+    dom.xpValue.textContent = progress.into + "/" + progress.need;
+    if (dom.shopRating) {
+      dom.shopRating.textContent = gameState.shopRating.toFixed(1);
+    }
   }
 
   function validateOrder() {
@@ -1617,7 +1659,7 @@
     const badges = collectBadges(categories, fitInfo);
     const rank = rankFor(total);
     const perfect = rank.id === "perfect";
-    const reward = rewardsFromBreakdown(total, badges, perfect);
+    const economy = calculateEconomy(total, perfect, categories.protection);
     return {
       total: total,
       categories: categories,
@@ -1626,8 +1668,8 @@
       perfect: perfect,
       fitInfo: fitInfo,
       protection: protInfo,
-      money: reward.money,
-      xp: reward.xp,
+      economy: economy,
+      xp: economy.xp,
     };
   }
 
@@ -1659,46 +1701,114 @@
     return badges;
   }
 
-  function rewardsFromBreakdown(total, badges, perfect) {
-    const selected = getSelectedBox();
-    let money = Math.round(8 + total * 0.42);
-    let xp = Math.round(4 + total * 0.16);
-    const sizeDelta = selected.rank - getIdealBox().rank;
-    if (sizeDelta > 0) {
-      money = Math.max(1, Math.round(money * (1 - 0.22 * sizeDelta)));
-    }
-    money = Math.max(0, Math.round(money / selected.shippingMultiplier));
-    money = Math.max(0, money - Math.ceil(gameState.protectionCost * 10));
+  function xpRequiredForLevel(level) {
+    return Math.round(
+      CONFIG.XP_LEVEL_BASE * Math.pow(CONFIG.XP_LEVEL_GROWTH, Math.max(0, level - 1))
+    );
+  }
 
-    const ids = {};
-    badges.forEach(function (b) {
-      ids[b.id] = true;
+  function levelProgress(totalXp) {
+    let level = 1;
+    let remaining = Math.max(0, totalXp);
+    while (level < 99) {
+      const need = xpRequiredForLevel(level);
+      if (remaining < need) {
+        return { level: level, into: remaining, need: need };
+      }
+      remaining -= need;
+      level += 1;
+    }
+    return { level: 99, into: remaining, need: xpRequiredForLevel(99) };
+  }
+
+  function syncLevel() {
+    const info = levelProgress(gameState.xp);
+    const previous = gameState.level;
+    gameState.level = info.level;
+    return {
+      leveled: info.level > previous,
+      from: previous,
+      to: info.level,
+      into: info.into,
+      need: info.need,
+    };
+  }
+
+  function updateShopRating(score) {
+    const sample = clamp(score / 20, 0.5, 5);
+    const n = gameState.totalOrders;
+    if (n <= 1) {
+      gameState.shopRating = Math.round(sample * 10) / 10;
+      return;
+    }
+    gameState.shopRating =
+      Math.round(((gameState.shopRating * (n - 1) + sample) / n) * 10) / 10;
+  }
+
+  function calculateEconomy(total, perfect, protectionScore) {
+    const placed = gameState.products.filter(function (p) {
+      return p.inBox;
     });
-    if (perfect) {
-      money += CONFIG.PERFECT_MONEY_BONUS;
-      xp += CONFIG.PERFECT_XP_BONUS;
-    }
-    if (ids.space) {
-      money += CONFIG.SPACE_MASTER_MONEY;
-      xp += CONFIG.SPACE_MASTER_XP;
-    }
-    if (ids.protector) {
-      money += CONFIG.PROTECTOR_MONEY;
-      xp += CONFIG.PROTECTOR_XP;
-    }
-    if (ids.budget) {
-      money += CONFIG.BUDGET_MASTER_MONEY;
-      xp += CONFIG.BUDGET_MASTER_XP;
-    }
-    if (ids.stylist) {
-      money += CONFIG.STYLIST_MONEY;
-      xp += CONFIG.STYLIST_XP;
-    }
-    if (ids.flawless) {
-      money += CONFIG.FLAWLESS_MONEY;
-      xp += CONFIG.FLAWLESS_XP;
-    }
-    return { money: money, xp: xp };
+    const box = getSelectedBox();
+    let revenue = 0;
+    let productCost = 0;
+    let weight = 0;
+    placed.forEach(function (p) {
+      const type = getType(p.typeId);
+      revenue += type.salePrice || 0;
+      productCost += type.productCost || 0;
+      weight += type.weight || 0;
+    });
+    const materials = placed.reduce(function (sum, p) {
+      return sum + sumWrapCost(p);
+    }, 0);
+    const boxCost = box.cost;
+    const packaging = boxCost + materials;
+    const shipping = cents(
+      CONFIG.SHIPPING_BASE * box.shippingMultiplier + weight * CONFIG.SHIPPING_PER_WEIGHT
+    );
+
+    let tipRate = 0;
+    if (perfect) tipRate = CONFIG.TIP_PERFECT;
+    else if (total >= CONFIG.AMAZING_MIN) tipRate = CONFIG.TIP_HIGH_SCORE;
+    const tip = cents(revenue * tipRate);
+
+    let refundRate = 0;
+    if (protectionScore < CONFIG.REFUND_HARD_BELOW) refundRate = CONFIG.REFUND_HARD;
+    else if (protectionScore < CONFIG.REFUND_SOFT_BELOW) refundRate = CONFIG.REFUND_SOFT;
+    const refund = cents(revenue * refundRate);
+
+    const profit = cents(revenue - productCost - packaging - shipping + tip - refund);
+
+    let xp = CONFIG.XP_ORDER;
+    if (total >= CONFIG.AMAZING_MIN) xp += CONFIG.XP_HIGH_SCORE;
+    if (perfect) xp += CONFIG.XP_PERFECT;
+
+    return {
+      revenue: cents(revenue),
+      productCost: cents(productCost),
+      boxCost: cents(boxCost),
+      materials: cents(materials),
+      packaging: cents(packaging),
+      shipping: shipping,
+      tip: tip,
+      refund: refund,
+      refundRate: refundRate,
+      profit: profit,
+      xp: xp,
+    };
+  }
+
+  function applyRunRewards(breakdown) {
+    const eco = breakdown.economy;
+    gameState.cash = cents(gameState.cash + eco.profit);
+    gameState.xp += eco.xp;
+    gameState.totalOrders += 1;
+    if (breakdown.perfect) gameState.perfectPacks += 1;
+    const levelInfo = syncLevel();
+    updateShopRating(breakdown.total);
+    breakdown.levelInfo = levelInfo;
+    return levelInfo;
   }
 
   function scoreAccuracy(report) {
@@ -2111,25 +2221,32 @@
     const perfect = !!breakdown.perfect;
 
     dom.resultTitle.textContent = rank.label;
-    if (perfect) {
+    if (cats.protection < CONFIG.REFUND_SOFT_BELOW) {
+      dom.resultKicker.textContent = "Fragile items need more wrap";
+    } else if (perfect) {
       dom.resultKicker.textContent = "Every millimetre earned it";
     } else if (badges.length) {
       dom.resultKicker.textContent = badges[0].label;
-    } else if (cats.protection < 80) {
-      dom.resultKicker.textContent = "Fragile items need more wrap";
     } else {
       dom.resultKicker.textContent = "Order packed";
     }
     dom.resultSheet.className = "result-sheet rank-" + rank.id + (perfect ? " perfect" : "");
-    dom.resultMoney.textContent = "+$" + breakdown.money;
-    dom.resultXp.textContent = "+" + breakdown.xp;
-    if (dom.resultBonus) {
-      dom.resultBonus.hidden = !perfect;
-      dom.resultBonus.classList.toggle("hidden", !perfect);
-    }
-
     renderScoreCats(cats, true);
     renderResultBadges(badges);
+    renderLedger(breakdown);
+
+    if (dom.resultXp) {
+      dom.resultXp.textContent = "+" + breakdown.xp;
+    }
+    if (dom.resultLevelUp) {
+      const leveled = breakdown.levelInfo && breakdown.levelInfo.leveled;
+      dom.resultLevelUp.hidden = !leveled;
+      dom.resultLevelUp.classList.toggle("hidden", !leveled);
+      if (leveled) {
+        dom.resultLevelUp.querySelector("strong").textContent =
+          "LEVEL " + breakdown.levelInfo.to;
+      }
+    }
 
     dom.resultScore.textContent = "0";
     dom.scoreRing.style.setProperty("--p", "0%");
@@ -2180,6 +2297,29 @@
       li.className = "result-badge badge-" + badge.id;
       li.textContent = badge.label;
       dom.resultBadges.appendChild(li);
+    });
+  }
+
+  function renderLedger(breakdown) {
+    if (!dom.resultLedger) return;
+    const eco = breakdown.economy || {};
+    const rows = [
+      { label: "Order revenue", value: eco.revenue, kind: "pos" },
+      { label: "Product cost", value: -eco.productCost, kind: "neg" },
+      { label: "Packaging", value: -eco.packaging, kind: "neg" },
+      { label: "Shipping", value: -eco.shipping, kind: "neg" },
+    ];
+    if (eco.tip) rows.push({ label: "Tip", value: eco.tip, kind: "tip" });
+    if (eco.refund) rows.push({ label: "Refund", value: -eco.refund, kind: "refund" });
+    rows.push({ label: "Profit", value: eco.profit, kind: "profit" });
+
+    dom.resultLedger.innerHTML = "";
+    rows.forEach(function (row) {
+      const li = document.createElement("li");
+      li.className = "ledger-row ledger-" + row.kind;
+      const display = row.kind === "tip" ? formatMoneyDelta(row.value) : formatMoney(row.value);
+      li.innerHTML = "<span>" + row.label.toUpperCase() + "</span><strong>" + display + "</strong>";
+      dom.resultLedger.appendChild(li);
     });
   }
 
@@ -2505,8 +2645,7 @@
     const breakdown = calculateScoreBreakdown(finishSnap);
     window.setTimeout(function () {
       if (!gameState.pendingResult) return;
-      gameState.money += breakdown.money;
-      gameState.xp += breakdown.xp;
+      applyRunRewards(breakdown);
       if (breakdown.perfect) {
         spawnConfetti();
         haptic(32);

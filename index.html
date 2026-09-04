@@ -19,15 +19,18 @@
   <body>
     <div id="app">
       <header class="hud" aria-label="Status">
-        <div class="hud-chip" title="Coins">
-          <span class="hud-icon" aria-hidden="true">🪙</span>
-          <span id="money-value">0</span>
+        <div class="hud-chip" title="Cash">
+          <span class="hud-icon" aria-hidden="true">💵</span>
+          <span id="cash-value">$100.00</span>
         </div>
-        <p class="hud-mark">Perfect Pack</p>
+        <p class="hud-mark">
+          Perfect Pack
+          <span class="hud-rating" title="Shop rating">★<span id="shop-rating">5.0</span></span>
+        </p>
         <div class="hud-right">
-          <div class="hud-chip" title="XP">
-            <span class="hud-icon" aria-hidden="true">✦</span>
-            <span id="xp-value">0</span>
+          <div class="hud-chip hud-xp" title="Level and XP">
+            <span id="level-value">Lv 1</span>
+            <span id="xp-value">0/100</span>
           </div>
           <button
             id="sound-toggle"
@@ -157,18 +160,15 @@
           </div>
           <ul class="score-cats" id="score-cats" aria-label="Category scores"></ul>
           <ul class="result-badges" id="result-badges" hidden></ul>
+          <ul class="ledger" id="result-ledger" aria-label="Order P&L"></ul>
           <ul class="rewards">
-            <li>
-              <span>Coins</span>
-              <strong id="result-money">+$0</strong>
-            </li>
             <li>
               <span>XP</span>
               <strong id="result-xp">+0</strong>
             </li>
-            <li id="result-bonus" class="bonus hidden" hidden>
-              <span>Perfect bonus</span>
-              <strong>+$50 · +20 XP</strong>
+            <li id="result-level-up" class="bonus hidden" hidden>
+              <span>Level up</span>
+              <strong>LEVEL 2</strong>
             </li>
           </ul>
           <button id="next-btn" class="pack-btn next-btn" type="button">NEXT ORDER</button>
