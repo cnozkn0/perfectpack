@@ -26,6 +26,7 @@
     STACK_GAP_PX: 10,
     COMPRESS_AESTHETIC_PENALTY: 2,
     STACK_AESTHETIC_PENALTY: 2,
+    MAX_WRAPS: 3,
   };
 
   // ===========================================================================
@@ -42,6 +43,7 @@
       icon: "🕯️",
       fragile: true,
       uprightOnly: true,
+      requiredProtection: 4,
       weight: 0.4,
       baseValue: 8,
     }),
@@ -52,6 +54,7 @@
       height: 75,
       icon: "☕",
       fragile: true,
+      requiredProtection: 8,
       weight: 0.95,
       baseValue: 10,
     }),
@@ -75,6 +78,7 @@
       fragile: true,
       liquid: true,
       uprightOnly: true,
+      requiredProtection: 7,
       weight: 0.35,
       baseValue: 22,
     }),
@@ -130,6 +134,7 @@
         compressible: false,
         uprightOnly: false,
         bendable: true,
+        requiredProtection: 0,
         weight: 0.3,
         baseValue: 10,
       },
@@ -176,6 +181,50 @@
   };
 
   // ===========================================================================
+  // PROTECTION_MATERIALS
+  // Each wrap adds protection AND extra occupied size (pad on every side).
+  // ===========================================================================
+  const PROTECTION_MATERIALS = {
+    tissue: {
+      id: "tissue",
+      label: "TISSUE PAPER",
+      short: "Tissue",
+      cost: 0.08,
+      protection: 1,
+      aesthetic: 5,
+      pad: 4,
+    },
+    bubble: {
+      id: "bubble",
+      label: "BUBBLE WRAP",
+      short: "Bubble",
+      cost: 0.18,
+      protection: 8,
+      aesthetic: 0,
+      pad: 10,
+    },
+    paper_fill: {
+      id: "paper_fill",
+      label: "PAPER FILL",
+      short: "Paper",
+      cost: 0.12,
+      protection: 5,
+      eco: true,
+      aesthetic: 2,
+      pad: 7,
+    },
+    foam: {
+      id: "foam",
+      label: "FOAM PAD",
+      short: "Foam",
+      cost: 0.25,
+      protection: 10,
+      aesthetic: 1,
+      pad: 12,
+    },
+  };
+
+  // ===========================================================================
   // ORDERS
   // items: product type id → required count. idealBox: small | medium | large
   // ===========================================================================
@@ -217,6 +266,8 @@
     drag: null,
     packing: false,
     packingReport: null,
+    selectedProductId: null,
+    protectionCost: 0,
     timers: {
       reject: 0,
       snap: 0,
@@ -245,6 +296,11 @@
     dom.packArea = $("pack-area");
     dom.shelf = $("shelf");
     dom.shelfHint = $("shelf-hint");
+    dom.wrapTray = $("wrap-tray");
+    dom.wrapTrayLabel = $("wrap-tray-label");
+    dom.wrapTrayStat = $("wrap-tray-stat");
+    dom.wrapOptions = $("wrap-options");
+    dom.unwrapBtn = $("unwrap-btn");
     dom.packBtn = $("pack-btn");
     dom.dragLayer = $("drag-layer");
     dom.confetti = $("confetti");
@@ -258,6 +314,8 @@
     dom.resultXp = $("result-xp");
     dom.resultBonus = $("result-bonus");
     dom.resultSpace = $("result-space");
+    dom.resultProtection = $("result-protection");
+    dom.resultRisks = $("result-risks");
     dom.nextBtn = $("next-btn");
   }
 
@@ -426,11 +484,12 @@
     dom.packBtn.disabled = true;
 
     const score = calculatePackScore();
-    const perfect = score >= CONFIG.PERFECT_MIN;
+    const protection = calculateProtectionScore();
     const spaceMaster = isSpaceMaster();
     const selected = getSelectedBox();
     const ideal = getIdealBox();
     const sizeDelta = selected.rank - ideal.rank;
+    const perfect = score >= CONFIG.PERFECT_MIN && protection.allSafe;
 
     let money = Math.round(8 + score * 0.42);
     let xp = Math.round(4 + score * 0.16);
@@ -439,6 +498,7 @@
       money = Math.max(1, Math.round(money * (1 - 0.22 * sizeDelta)));
     }
     money = Math.max(0, Math.round(money / selected.shippingMultiplier));
+    money = Math.max(0, money - Math.ceil(gameState.protectionCost * 10));
 
     if (perfect) {
       money += CONFIG.PERFECT_MONEY_BONUS;
@@ -455,7 +515,7 @@
     playSound(perfect || spaceMaster ? "perfect" : "complete");
     if (perfect || spaceMaster) spawnConfetti();
 
-    showResult(score, money, xp, perfect, spaceMaster);
+    showResult(score, money, xp, perfect, spaceMaster, protection);
     renderOrder();
   }
 
@@ -477,6 +537,7 @@
     applyBoxSize();
     renderBoxPicker();
     spawnProducts();
+    clearSelection();
     updatePackButton();
   }
 
@@ -513,6 +574,7 @@
       y: 0,
       rotation: 0,
       compressed: false,
+      wraps: [],
       inBox: false,
       protectionLevel: 0,
       softProtection: 0,
@@ -622,6 +684,7 @@
         typeId: product.typeId,
         rotation: product.rotation,
         compressed: !!product.compressed,
+        wraps: (product.wraps || []).slice(),
         x: product.x,
         y: product.y,
         inBox: product.inBox,
@@ -629,6 +692,42 @@
       },
       overrides || {}
     );
+  }
+
+  function getWrapPad(product) {
+    let pad = 0;
+    (product.wraps || []).forEach(function (id) {
+      const mat = PROTECTION_MATERIALS[id];
+      if (mat) pad += mat.pad;
+    });
+    return pad;
+  }
+
+  function sumWrapProtection(product) {
+    return (product.wraps || []).reduce(function (sum, id) {
+      const mat = PROTECTION_MATERIALS[id];
+      return sum + (mat ? mat.protection : 0);
+    }, 0);
+  }
+
+  function sumWrapCost(product) {
+    return (product.wraps || []).reduce(function (sum, id) {
+      const mat = PROTECTION_MATERIALS[id];
+      return sum + (mat ? mat.cost : 0);
+    }, 0);
+  }
+
+  function sumWrapAesthetic(product) {
+    return (product.wraps || []).reduce(function (sum, id) {
+      const mat = PROTECTION_MATERIALS[id];
+      return sum + (mat && mat.aesthetic ? mat.aesthetic : 0);
+    }, 0);
+  }
+
+  function refreshProtectionCost() {
+    gameState.protectionCost = gameState.products.reduce(function (sum, p) {
+      return sum + sumWrapCost(p);
+    }, 0);
   }
 
   function getBaseSize(product) {
@@ -645,13 +744,14 @@
     return { w: w, h: h };
   }
 
-  /** Axis-aligned size after rotation (90° / 270° swap width & height). */
+  /** Axis-aligned size after rotation, plus wrap padding on every side. */
   function getAABB(product) {
     const base = getBaseSize(product);
     const swapped = product.rotation % 180 === 90;
+    const pad = getWrapPad(product);
     return {
-      w: swapped ? base.h : base.w,
-      h: swapped ? base.w : base.h,
+      w: (swapped ? base.h : base.w) + pad * 2,
+      h: (swapped ? base.w : base.h) + pad * 2,
     };
   }
 
@@ -667,6 +767,10 @@
     el.style.setProperty("--rot", product.rotation + "deg");
     el.classList.toggle("is-compressed", !!product.compressed);
     el.classList.toggle("is-tipped", type.uprightOnly && !isUpright(product));
+    el.classList.toggle("is-wrapped", !!(product.wraps && product.wraps.length));
+    el.classList.toggle("is-selected", gameState.selectedProductId === product.id);
+    syncWrapLayers(product);
+    product.protectionLevel = sumWrapProtection(product);
     if (product.compressBtn) {
       product.compressBtn.classList.toggle("is-on", !!product.compressed);
       product.compressBtn.textContent = product.compressed ? "▴" : "▾";
@@ -674,6 +778,7 @@
         "aria-label",
         (product.compressed ? "Expand " : "Compress ") + type.name
       );
+      product.compressBtn.title = product.compressed ? "EXPAND" : "COMPRESS";
     }
     if (product.inBox) {
       el.style.left = product.x + "px";
@@ -683,6 +788,121 @@
 
   function isUpright(product) {
     return product.rotation % 360 === 0;
+  }
+
+  function syncWrapLayers(product) {
+    if (!product.el) return;
+    let stack = product.el.querySelector(".wrap-stack");
+    if (!stack) {
+      stack = document.createElement("div");
+      stack.className = "wrap-stack";
+      product.el.insertBefore(stack, product.el.firstChild);
+    }
+    stack.innerHTML = "";
+    (product.wraps || []).forEach(function (id) {
+      const layer = document.createElement("div");
+      layer.className = "wrap-layer wrap-" + id;
+      stack.appendChild(layer);
+    });
+  }
+
+  function getSelectedProduct() {
+    const id = gameState.selectedProductId;
+    if (!id) return null;
+    for (let i = 0; i < gameState.products.length; i += 1) {
+      if (gameState.products[i].id === id) return gameState.products[i];
+    }
+    return null;
+  }
+
+  function selectProduct(product) {
+    if (gameState.packing || !product) return;
+    gameState.selectedProductId = product.id;
+    gameState.products.forEach(function (p) {
+      if (p.el) p.el.classList.toggle("is-selected", p.id === product.id);
+    });
+    renderWrapTray();
+  }
+
+  function clearSelection() {
+    gameState.selectedProductId = null;
+    gameState.products.forEach(function (p) {
+      if (p.el) p.el.classList.remove("is-selected");
+    });
+    renderWrapTray();
+  }
+
+  function tryResizeInBox(product, previousAABB) {
+    if (!product.inBox) {
+      applyProductMetrics(product);
+      return true;
+    }
+    const next = getAABB(product);
+    const cx = product.x + previousAABB.w / 2;
+    const cy = product.y + previousAABB.h / 2;
+    const nextX = snapValue(cx - next.w / 2);
+    const nextY = snapValue(cy - next.h / 2);
+    const candidate = clonePose(product, { x: nextX, y: nextY, inBox: true });
+    if (!isInsideBox(candidate) || isOverlapping(candidate)) {
+      return false;
+    }
+    product.x = nextX;
+    product.y = nextY;
+    applyProductMetrics(product);
+    return true;
+  }
+
+  function applyWrap(product, materialId) {
+    if (gameState.packing) return;
+    if (!PROTECTION_MATERIALS[materialId]) return;
+    if ((product.wraps || []).length >= CONFIG.MAX_WRAPS) {
+      playSound("error");
+      haptic(10);
+      return;
+    }
+
+    const prevAABB = getAABB(product);
+    const prevWraps = (product.wraps || []).slice();
+    product.wraps = prevWraps.concat([materialId]);
+    product.protectionLevel = sumWrapProtection(product);
+
+    if (!tryResizeInBox(product, prevAABB)) {
+      product.wraps = prevWraps;
+      product.protectionLevel = sumWrapProtection(product);
+      applyProductMetrics(product);
+      product.el.classList.add("is-invalid");
+      playSound("error");
+      haptic(12);
+      window.setTimeout(function () {
+        product.el.classList.remove("is-invalid");
+      }, 320);
+      return;
+    }
+
+    refreshProtectionCost();
+    playSound("place");
+    haptic(8);
+    playSnapAnimation(product.el);
+    renderWrapTray();
+    updatePackButton();
+  }
+
+  function unwrapProduct(product) {
+    if (gameState.packing) return;
+    if (!product.wraps || !product.wraps.length) return;
+
+    const prevAABB = getAABB(product);
+    product.wraps = product.wraps.slice(0, -1);
+    product.protectionLevel = sumWrapProtection(product);
+
+    if (!tryResizeInBox(product, prevAABB)) {
+      applyProductMetrics(product);
+    }
+
+    refreshProtectionCost();
+    playSound("rotate");
+    renderWrapTray();
+    updatePackButton();
   }
 
   function rotateProduct(product) {
@@ -929,7 +1149,7 @@
     if (!drag.moved) {
       clearDragVisuals();
       gameState.drag = null;
-      rotateProduct(product);
+      selectProduct(product);
       return;
     }
 
@@ -1126,17 +1346,25 @@
 
     refreshProtection(placed);
     placed.forEach(function (p) {
+      const type = getType(p.typeId);
       report.protection[p.id] = {
         protectionLevel: p.protectionLevel,
         softProtection: p.softProtection,
         effectiveProtection: p.effectiveProtection,
-        fragile: getType(p.typeId).fragile,
+        requiredProtection: type.requiredProtection || 0,
+        fragile: type.fragile,
+        risk: protectionRisk(p),
       };
     });
 
     report.stacking = buildStackingReport(placed);
     if (report.stacking.heavyOnFragile.length) {
       report.warnings.push("heavy-on-fragile");
+    }
+    if (report.protection) {
+      Object.keys(report.protection).forEach(function (id) {
+        if (report.protection[id].risk === "HIGH") report.warnings.push("high-damage-risk");
+      });
     }
 
     report.ok = report.blockers.length === 0;
@@ -1146,6 +1374,7 @@
   function refreshProtection(placed) {
     placed.forEach(function (product) {
       const type = getType(product.typeId);
+      product.protectionLevel = sumWrapProtection(product);
       product.softProtection = 0;
       if (type.fragile) {
         placed.forEach(function (other) {
@@ -1237,6 +1466,8 @@
     let aestheticPenalty = 0;
     placed.forEach(function (p) {
       if (p.compressed) aestheticPenalty += CONFIG.COMPRESS_AESTHETIC_PENALTY;
+      const wrapLook = sumWrapAesthetic(p);
+      if (wrapLook) aestheticPenalty -= wrapLook * 0.25;
     });
     const report = gameState.packingReport || buildPackingReport();
     if (report.stacking && report.stacking.heavyOnFragile) {
@@ -1261,8 +1492,59 @@
     return getSelectedBox().rank < getIdealBox().rank;
   }
 
-  function ratingFor(score) {
-    if (score >= CONFIG.PERFECT_MIN) return "PERFECT PACK";
+  function protectionRisk(product) {
+    const type = getType(product.typeId);
+    if (!type.fragile) return null;
+    const required = type.requiredProtection || 0;
+    if (required <= 0) return null;
+    const got = product.effectiveProtection || 0;
+    if (got >= required) return null;
+    const ratio = got / required;
+    if (ratio < 0.4) return "HIGH";
+    if (ratio < 0.75) return "MEDIUM";
+    return "LOW";
+  }
+
+  function calculateProtectionScore() {
+    const placed = gameState.products.filter(function (p) {
+      return p.inBox;
+    });
+    refreshProtection(placed);
+    const fragiles = placed.filter(function (p) {
+      return getType(p.typeId).fragile;
+    });
+    if (!fragiles.length) {
+      return { pct: 100, allSafe: true, items: [] };
+    }
+
+    let sum = 0;
+    const items = fragiles.map(function (p) {
+      const type = getType(p.typeId);
+      const required = type.requiredProtection || 0;
+      const got = p.effectiveProtection || 0;
+      const ratio = required <= 0 ? 1 : clamp(got / required, 0, 1);
+      sum += ratio;
+      return {
+        name: type.name,
+        got: got,
+        required: required,
+        risk: protectionRisk(p),
+      };
+    });
+
+    return {
+      pct: Math.round((sum / fragiles.length) * 100),
+      allSafe: items.every(function (item) {
+        return !item.risk;
+      }),
+      items: items,
+    };
+  }
+
+  function ratingFor(score, protectionSafe) {
+    const safe = protectionSafe !== false;
+    if (score >= CONFIG.PERFECT_MIN && safe) return "PERFECT PACK";
+    if (score >= CONFIG.PERFECT_MIN && !safe) return "GREAT PACK";
     if (score >= CONFIG.GREAT_MIN) return "GREAT PACK";
     if (score >= CONFIG.GOOD_MIN) return "GOOD PACK";
     return "NEEDS IMPROVEMENT";
@@ -1299,6 +1581,71 @@
     });
   }
 
+  function renderWrapTray() {
+    if (!dom.wrapTray) return;
+    const product = getSelectedProduct();
+    if (!product) {
+      dom.wrapTray.hidden = true;
+      dom.wrapTray.classList.add("hidden");
+      return;
+    }
+
+    const type = getType(product.typeId);
+    refreshProtection(
+      gameState.products.filter(function (p) {
+        return p.inBox;
+      })
+    );
+    if (!product.inBox) {
+      product.protectionLevel = sumWrapProtection(product);
+      product.effectiveProtection = product.protectionLevel;
+    }
+    const got = product.effectiveProtection || 0;
+    const required = type.requiredProtection || 0;
+
+    dom.wrapTray.hidden = false;
+    dom.wrapTray.classList.remove("hidden");
+    dom.wrapTrayLabel.textContent = "WRAP " + type.name.toUpperCase();
+    if (type.fragile && required) {
+      dom.wrapTrayStat.textContent = got + " / " + required;
+      dom.wrapTrayStat.classList.toggle("is-risk", got < required);
+    } else {
+      dom.wrapTrayStat.textContent = "Prot " + got;
+      dom.wrapTrayStat.classList.remove("is-risk");
+    }
+
+    if (!dom.wrapOptions.childElementCount) {
+      Object.keys(PROTECTION_MATERIALS).forEach(function (id) {
+        const mat = PROTECTION_MATERIALS[id];
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "wrap-choice";
+        btn.setAttribute("data-wrap", id);
+        btn.innerHTML =
+          '<span class="wrap-choice-name">' +
+          mat.short +
+          '</span><span class="wrap-choice-meta">+' +
+          mat.protection +
+          " · $" +
+          mat.cost.toFixed(2) +
+          "</span>";
+        dom.wrapOptions.appendChild(btn);
+      });
+    }
+
+    const counts = {};
+    (product.wraps || []).forEach(function (id) {
+      counts[id] = (counts[id] || 0) + 1;
+    });
+    Array.prototype.forEach.call(dom.wrapOptions.querySelectorAll(".wrap-choice"), function (btn) {
+      const id = btn.getAttribute("data-wrap");
+      btn.classList.toggle("is-on", !!counts[id]);
+    });
+    if (dom.unwrapBtn) {
+      dom.unwrapBtn.disabled = !(product.wraps && product.wraps.length);
+    }
+  }
+
   function updateShelfHint() {
     const remaining = gameState.products.filter(function (p) {
       return !p.inBox;
@@ -1308,7 +1655,7 @@
       if (report && report.blockers.indexOf("upright") !== -1) {
         dom.shelfHint.textContent = "Stand upright items up · Tap to rotate";
       } else {
-        dom.shelfHint.textContent = "Nudge items tight · Tap to rotate";
+        dom.shelfHint.textContent = "Tap to wrap · ↻ to rotate";
       }
       if (!dom.shelf.querySelector(".product") && !dom.shelf.querySelector(".shelf-empty")) {
         const empty = document.createElement("p");
@@ -1317,7 +1664,7 @@
         dom.shelf.appendChild(empty);
       }
     } else {
-      dom.shelfHint.textContent = "Drag into the box · Tap to rotate";
+      dom.shelfHint.textContent = "Drag into the box · Tap to wrap";
       const empty = dom.shelf.querySelector(".shelf-empty");
       if (empty) empty.remove();
     }
@@ -1332,12 +1679,14 @@
     updateShelfHint();
   }
 
-  function showResult(score, money, xp, perfect, spaceMaster) {
-    if (spaceMaster) {
-      dom.resultTitle.textContent = ratingFor(score);
+  function showResult(score, money, xp, perfect, spaceMaster, protection) {
+    protection = protection || calculateProtectionScore();
+    dom.resultTitle.textContent = ratingFor(score, protection.allSafe);
+    if (!protection.allSafe) {
+      dom.resultKicker.textContent = "Fragile items need more wrap";
+    } else if (spaceMaster) {
       dom.resultKicker.textContent = "SPACE MASTER · smaller than ideal";
     } else {
-      dom.resultTitle.textContent = ratingFor(score);
       dom.resultKicker.textContent = perfect ? "Every millimetre earned it" : "Order packed";
     }
     dom.resultSheet.classList.toggle("perfect", perfect || spaceMaster);
@@ -1348,6 +1697,28 @@
     if (dom.resultSpace) {
       dom.resultSpace.hidden = !spaceMaster;
       dom.resultSpace.classList.toggle("hidden", !spaceMaster);
+    }
+    if (dom.resultProtection) {
+      dom.resultProtection.textContent = protection.pct + "%";
+    }
+    if (dom.resultRisks) {
+      dom.resultRisks.innerHTML = "";
+      protection.items.forEach(function (item) {
+        if (!item.risk) return;
+        const li = document.createElement("li");
+        li.className = "risk-line risk-" + item.risk.toLowerCase();
+        li.innerHTML =
+          "<span>" +
+          item.name.toUpperCase() +
+          "</span><span>Protection " +
+          item.got +
+          " / Required " +
+          item.required +
+          "</span><strong>" +
+          item.risk +
+          " DAMAGE RISK</strong>";
+        dom.resultRisks.appendChild(li);
+      });
     }
     dom.resultScore.textContent = "0";
     dom.scoreRing.style.setProperty("--p", "0%");
@@ -1416,6 +1787,25 @@
     dom.soundToggle.addEventListener("click", toggleSound);
     dom.packBtn.addEventListener("click", completeOrder);
     dom.nextBtn.addEventListener("click", nextOrder);
+    if (dom.wrapOptions) {
+      dom.wrapOptions.addEventListener("click", function (event) {
+        const btn = event.target.closest("[data-wrap]");
+        const product = getSelectedProduct();
+        if (!btn || !product) return;
+        applyWrap(product, btn.getAttribute("data-wrap"));
+      });
+    }
+    if (dom.unwrapBtn) {
+      dom.unwrapBtn.addEventListener("click", function () {
+        const product = getSelectedProduct();
+        if (product) unwrapProduct(product);
+      });
+    }
+    if (dom.packArea) {
+      dom.packArea.addEventListener("pointerdown", function (event) {
+        if (event.target === dom.packArea) clearSelection();
+      });
+    }
     dom.boxPicker.addEventListener("click", function (event) {
       const btn = event.target.closest("[data-box]");
       if (btn) selectBox(btn.getAttribute("data-box"));

@@ -430,6 +430,62 @@ ul {
   position: absolute;
 }
 
+.product.is-selected {
+  z-index: 6;
+}
+
+.product.is-selected .product-inner {
+  box-shadow:
+    0 0 0 2px var(--terracotta),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 6px 12px rgba(74, 52, 40, 0.16);
+}
+
+.wrap-stack {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+}
+
+.wrap-tissue {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 248, 239, 0.45) 0 5px,
+    rgba(232, 180, 160, 0.22) 5px 10px
+  );
+  box-shadow: inset 0 0 0 2px rgba(232, 180, 160, 0.35);
+}
+
+.wrap-bubble {
+  background-image:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.7) 0 22%, transparent 26%),
+    radial-gradient(circle at 72% 58%, rgba(170, 220, 230, 0.45) 0 18%, transparent 22%);
+  background-size: 12px 12px;
+  background-color: rgba(190, 230, 235, 0.18);
+  box-shadow: inset 0 0 0 2px rgba(140, 200, 210, 0.55);
+}
+
+.wrap-paper_fill {
+  background: repeating-linear-gradient(
+    -18deg,
+    rgba(196, 164, 116, 0.28) 0 3px,
+    transparent 3px 8px
+  );
+  box-shadow: inset 0 0 0 2px rgba(176, 140, 90, 0.35);
+}
+
+.wrap-foam {
+  background: rgba(255, 214, 170, 0.42);
+  box-shadow: inset 0 0 0 3px rgba(230, 160, 100, 0.5);
+}
+
 .product-inner {
   position: absolute;
   width: var(--ow);
@@ -444,10 +500,65 @@ ul {
   align-items: center;
   justify-content: center;
   gap: 2px;
+  z-index: 1;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
     0 6px 12px rgba(74, 52, 40, 0.16);
   overflow: hidden;
+}
+
+.protection-result {
+  margin: 0 0 14px;
+  text-align: left;
+}
+
+.protection-meter {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  background: #f6ebdd;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.protection-meter strong {
+  font-size: 22px;
+  letter-spacing: 0;
+  color: var(--sage);
+}
+
+.protection-risks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.risk-line {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #fde8e2;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.risk-line strong {
+  color: var(--terracotta);
+  letter-spacing: 0.06em;
+}
+
+.risk-line.risk-medium {
+  background: #fde7c8;
+}
+
+.risk-line.risk-medium strong {
+  color: #8a5a16;
 }
 
 .product-icon {
@@ -761,6 +872,93 @@ ul {
   opacity: 0.9;
 }
 
+.wrap-tray {
+  background: var(--paper);
+  border-radius: 16px;
+  padding: 8px 8px 10px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wrap-tray.hidden {
+  display: none;
+}
+
+.wrap-tray-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.wrap-tray-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.wrap-tray-stat {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--sage);
+}
+
+.wrap-tray-stat.is-risk {
+  color: var(--terracotta);
+}
+
+.wrap-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+.wrap-choice {
+  min-width: 0;
+  min-height: 44px;
+  padding: 5px 3px;
+  border-radius: 12px;
+  background: #f6ebdd;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border: 2px solid transparent;
+}
+
+.wrap-choice.is-on {
+  border-color: var(--sage);
+  background: #e4f0e7;
+}
+
+.wrap-choice-name {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.wrap-choice-meta {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.unwrap-btn {
+  min-height: 32px;
+  border-radius: 10px;
+  background: #f3e6d6;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.unwrap-btn:disabled {
+  opacity: 0.45;
+}
+
 .pack-btn {
   width: 100%;
   min-height: 54px;
@@ -978,6 +1176,10 @@ ul {
   .box-choice {
     min-height: 44px;
     padding: 5px 4px;
+  }
+
+  .wrap-choice {
+    min-height: 40px;
   }
 
   .shelf {

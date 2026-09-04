@@ -77,6 +77,14 @@
       <section class="dock">
         <p class="shelf-hint" id="shelf-hint">Drag into the box · Tap to rotate</p>
         <div class="shelf" id="shelf" aria-label="Product shelf"></div>
+        <div id="wrap-tray" class="wrap-tray hidden" hidden>
+          <div class="wrap-tray-head">
+            <p class="wrap-tray-label" id="wrap-tray-label">WRAP</p>
+            <span class="wrap-tray-stat" id="wrap-tray-stat"></span>
+          </div>
+          <div class="wrap-options" id="wrap-options"></div>
+          <button id="unwrap-btn" class="unwrap-btn" type="button">UNWRAP</button>
+        </div>
         <button id="pack-btn" class="pack-btn" type="button" disabled>
           PACK ORDER
         </button>
@@ -93,6 +101,13 @@
         <div class="score-ring" id="score-ring">
           <strong id="result-score">0</strong>
           <span>Pack Score</span>
+        </div>
+        <div class="protection-result">
+          <div class="protection-meter">
+            <span>PROTECTION</span>
+            <strong id="result-protection">0%</strong>
+          </div>
+          <ul class="protection-risks" id="result-risks"></ul>
         </div>
         <ul class="rewards">
           <li>
