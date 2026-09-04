@@ -2317,6 +2317,7 @@
     rows.forEach(function (row) {
       const li = document.createElement("li");
       li.className = "ledger-row ledger-" + row.kind;
+      if (row.kind === "profit" && row.value < 0) li.classList.add("is-loss");
       const display = row.kind === "tip" ? formatMoneyDelta(row.value) : formatMoney(row.value);
       li.innerHTML = "<span>" + row.label.toUpperCase() + "</span><strong>" + display + "</strong>";
       dom.resultLedger.appendChild(li);

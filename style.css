@@ -1873,11 +1873,9 @@ ul {
   background: #fde8e2;
 }
 
-.ledger-profit {
-  background: #e4f0e7;
-  color: #2f5a40;
-  font-size: 14px;
-  padding: 10px 12px;
+.ledger-profit.is-loss {
+  background: #fde8e2;
+  color: var(--terracotta-deep);
 }
 
 .rewards {
