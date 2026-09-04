@@ -590,6 +590,7 @@
     finish: null,
     expressDeadline: 0,
     expressFailed: false,
+    stage: "desk",
     timers: {
       reject: 0,
       snap: 0,
@@ -625,6 +626,16 @@
     dom.requestTitle = $("request-title");
     dom.requestQuote = $("request-quote");
     dom.requestTimer = $("request-timer");
+    dom.packTimer = $("pack-timer");
+    dom.packTitle = $("pack-title");
+    dom.packItems = $("pack-items");
+    dom.packRequestLine = $("pack-request-line");
+    dom.startPackBtn = $("start-pack-btn");
+    dom.deskBack = $("desk-back");
+    dom.packingStage = $("packing-stage");
+    dom.deskPreview = $("desk-preview-label");
+    dom.packSoundToggle = $("pack-sound-toggle");
+    dom.packSoundIcon = $("pack-sound-icon");
     dom.requestToast = $("request-toast");
     dom.boxPicker = $("box-picker");
     dom.boxSizeTag = $("box-size-tag");
@@ -938,26 +949,30 @@
   }
 
   function tickExpressTimer() {
-    const el = dom.requestTimer;
     const deadline = gameState.expressDeadline;
-    if (!deadline) {
-      if (el) el.hidden = true;
-      return;
-    }
-    const remaining = deadline - Date.now();
-    if (el) {
-      el.hidden = false;
-      if (remaining <= 0) {
-        el.textContent = "TIME'S UP";
-        el.classList.add("is-late");
-      } else {
-        el.textContent = formatCountdown(remaining);
-        el.classList.toggle("is-late", remaining <= 8000);
-      }
-    }
-    if (remaining <= 0) {
+    const remaining = deadline ? deadline - Date.now() : 0;
+    paintTimer(dom.requestTimer, deadline, remaining);
+    paintTimer(dom.packTimer, deadline, remaining);
+    if (deadline && remaining <= 0) {
       gameState.expressFailed = true;
       stopExpressTimer();
+    }
+  }
+
+  function paintTimer(el, deadline, remaining) {
+    if (!el) return;
+    if (!deadline) {
+      el.hidden = true;
+      el.classList.remove("is-late");
+      return;
+    }
+    el.hidden = false;
+    if (remaining <= 0) {
+      el.textContent = "TIME'S UP";
+      el.classList.add("is-late");
+    } else {
+      el.textContent = formatCountdown(remaining);
+      el.classList.toggle("is-late", remaining <= 8000);
     }
   }
 
@@ -968,15 +983,12 @@
     if (!seconds) {
       gameState.expressDeadline = 0;
       gameState.expressFailed = false;
-      if (dom.requestTimer) {
-        dom.requestTimer.hidden = true;
-        dom.requestTimer.classList.remove("is-late");
-      }
+      paintTimer(dom.requestTimer, 0, 0);
+      paintTimer(dom.packTimer, 0, 0);
       return;
     }
     gameState.expressFailed = false;
     gameState.expressDeadline = Date.now() + seconds * 1000;
-    if (dom.requestTimer) dom.requestTimer.classList.remove("is-late");
     tickExpressTimer();
     gameState.timers.express = window.setInterval(tickExpressTimer, 250);
   }
@@ -1024,6 +1036,7 @@
   }
 
   function fitBoxToTable() {
+    if (gameState.stage !== "packing") return;
     if (!dom.box || !dom.packArea) return;
     const surface = document.querySelector(".table-surface");
     if (!surface) return;
@@ -1080,15 +1093,10 @@
     });
   }
 
-  function renderOrder() {
+  function fillOrderPills(list) {
+    if (!list) return;
     const order = gameState.currentOrder;
-    const n = String(order.number).padStart(3, "0");
-    dom.orderTitle.textContent = "ORDER #" + n;
-
-    const total = itemCount(order.items);
-    dom.orderCount.textContent = total + (total === 1 ? " item" : " items");
-
-    dom.orderItems.innerHTML = "";
+    list.innerHTML = "";
     Object.entries(order.items).forEach(function (entry) {
       const typeId = entry[0];
       const qty = entry[1];
@@ -1106,8 +1114,22 @@
         ' <span class="qty">×' +
         qty +
         "</span></span>";
-      dom.orderItems.appendChild(li);
+      list.appendChild(li);
     });
+  }
+
+  function renderOrder() {
+    const order = gameState.currentOrder;
+    const n = String(order.number).padStart(3, "0");
+    const title = "ORDER #" + n;
+    dom.orderTitle.textContent = title;
+    if (dom.packTitle) dom.packTitle.textContent = title;
+
+    const total = itemCount(order.items);
+    dom.orderCount.textContent = total + (total === 1 ? " item" : " items");
+
+    fillOrderPills(dom.orderItems);
+    fillOrderPills(dom.packItems);
 
     renderRequestBlock();
     renderShopStats();
@@ -1141,14 +1163,20 @@
 
   function renderRequestBlock() {
     const block = dom.orderRequest;
-    if (!block) return;
     const req = getOrderRequest();
+    if (dom.packRequestLine) {
+      if (!req) {
+        dom.packRequestLine.hidden = true;
+        dom.packRequestLine.textContent = "";
+      } else {
+        dom.packRequestLine.hidden = false;
+        dom.packRequestLine.textContent = req.icon + " " + req.name;
+      }
+    }
+    if (!block) return;
     if (!req) {
       block.hidden = true;
-      if (dom.requestTimer) {
-        dom.requestTimer.hidden = true;
-        dom.requestTimer.classList.remove("is-late");
-      }
+      paintTimer(dom.requestTimer, 0, 0);
       return;
     }
     block.hidden = false;
@@ -1159,10 +1187,37 @@
     if (dom.requestQuote) {
       dom.requestQuote.textContent = '"' + (req.quote || "") + '"';
     }
-    if (dom.requestTimer && !req.timerSeconds) {
-      dom.requestTimer.hidden = true;
-      dom.requestTimer.classList.remove("is-late");
+    if (!req.timerSeconds) {
+      paintTimer(dom.requestTimer, 0, 0);
     }
+  }
+
+  function setStage(stage) {
+    gameState.stage = stage;
+    if (dom.app) dom.app.setAttribute("data-stage", stage);
+    if (dom.packingStage) {
+      dom.packingStage.setAttribute("aria-hidden", stage === "packing" ? "false" : "true");
+    }
+  }
+
+  function enterPacking() {
+    if (gameState.packing) return;
+    setStage("packing");
+    playSound("place");
+    haptic(8);
+    scheduleFitBox();
+    window.setTimeout(scheduleFitBox, 240);
+  }
+
+  function enterDesk() {
+    if (gameState.packing) return;
+    if (gameState.drag) {
+      const drag = gameState.drag;
+      drag.done = true;
+      restoreLastPosition(drag.product, drag);
+      finishDrag();
+    }
+    setStage("desk");
   }
 
   function validateOrder() {
@@ -1207,6 +1262,7 @@
     hideRequestToast();
     updatePackButton();
     startExpressTimer();
+    enterDesk();
   }
 
   // ===========================================================================
@@ -2830,6 +2886,10 @@
       btn.classList.toggle("is-selected", on);
       btn.setAttribute("aria-checked", on ? "true" : "false");
     });
+    if (dom.deskPreview) {
+      const box = getSelectedBox();
+      dom.deskPreview.textContent = box.label + " ready — tap START PACKING";
+    }
   }
 
   function renderWrapTray() {
@@ -3197,15 +3257,37 @@
     }, 2400);
   }
 
-  function renderSoundButton() {
+  function paintSoundButton(btn, icon) {
+    if (!btn || !icon) return;
     const on = gameState.soundEnabled;
-    dom.soundIcon.textContent = on ? "🔊" : "🔇";
-    dom.soundToggle.setAttribute("aria-label", on ? "Mute sound" : "Unmute sound");
-    dom.soundToggle.setAttribute("aria-pressed", on ? "false" : "true");
+    icon.textContent = on ? "🔊" : "🔇";
+    btn.setAttribute("aria-label", on ? "Mute sound" : "Unmute sound");
+    btn.setAttribute("aria-pressed", on ? "false" : "true");
+  }
+
+  function renderSoundButton() {
+    paintSoundButton(dom.soundToggle, dom.soundIcon);
+    paintSoundButton(dom.packSoundToggle, dom.packSoundIcon);
   }
 
   function bindUi() {
     dom.soundToggle.addEventListener("click", toggleSound);
+    if (dom.packSoundToggle) {
+      dom.packSoundToggle.addEventListener("click", toggleSound);
+    }
+    if (dom.startPackBtn) {
+      dom.startPackBtn.addEventListener("click", enterPacking);
+    }
+    if (dom.deskBack) {
+      dom.deskBack.addEventListener("click", enterDesk);
+    }
+    if (dom.packingStage) {
+      dom.packingStage.addEventListener("transitionend", function (event) {
+        if (event.target !== dom.packingStage) return;
+        if (event.propertyName !== "transform" && event.propertyName !== "opacity") return;
+        if (gameState.stage === "packing") scheduleFitBox();
+      });
+    }
     dom.packBtn.addEventListener("click", completeOrder);
     dom.nextBtn.addEventListener("click", nextOrder);
     if (dom.wrapOptions) {
@@ -3887,6 +3969,7 @@
     renderOrder();
     updatePackButton();
     startExpressTimer();
+    enterDesk();
   }
 
   // ===========================================================================

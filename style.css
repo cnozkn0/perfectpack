@@ -455,7 +455,124 @@ ul {
   line-height: 16px;
 }
 
-/* ——— Packing table ——— */
+.start-pack-btn {
+  margin-top: auto;
+}
+
+.desk-preview {
+  flex: 1 1 0;
+  min-height: 72px;
+  border-radius: 24px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 12px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(74, 52, 40, 0.45);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(120, 80, 40, 0.05) 0 12px,
+      transparent 12px 24px
+    ),
+    linear-gradient(180deg, #e8c9a0 0%, var(--wood) 55%, #c9a578 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), var(--shadow-sm);
+}
+
+.packing-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: calc(10px + var(--safe-top)) calc(16px + var(--safe-right))
+    calc(12px + var(--safe-bottom)) calc(16px + var(--safe-left));
+  background:
+    radial-gradient(120% 60% at 50% -10%, #fff6ea 0%, transparent 55%),
+    linear-gradient(180deg, #f7e7d4 0%, var(--bg) 38%, var(--bg-deep) 100%);
+  overflow: hidden;
+  transform: translate3d(0, 18%, 0);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 0.22s cubic-bezier(0.22, 0.9, 0.28, 1),
+    opacity 0.18s ease;
+}
+
+#app[data-stage="packing"] .packing-stage {
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pack-hud {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.desk-back {
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.pack-hud-mid {
+  min-width: 0;
+}
+
+#pack-title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.pack-request-line {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--terracotta);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pack-items {
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.pack-items .order-pill {
+  padding: 3px 7px;
+  font-size: 11px;
+  gap: 4px;
+  border-radius: 10px;
+}
+
+.dock {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .packing-stage {
+    transform: none;
+    transition: opacity 0.12s ease;
+  }
+}
+
 .table {
   flex: 1 1 0;
   min-height: 0;

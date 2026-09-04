@@ -6,14 +6,15 @@ Open `index.html` in a browser — no build step, no backend, no extra assets.
 
 ## How to play
 
-1. Read the order card at the top.
-2. Drag items from the shelf into the box, or tap an item twice to auto-place it (mouse or touch).
-3. Tap a packed item again, or press **↻**, to rotate. Candles and perfume stay upright (0° / 180°).
-4. Tap a packed item to wrap it. The wrap tray sits above the shelf so leftover items stay tappable.
-5. Fit every required item. Extra items cannot be added.
-6. When the layout is valid, **PACK ORDER** lights up.
-7. Run the packing finish sequence (tissue, card, flaps, sticker, tape, label, scan).
-8. **SHIPPED ✓**, then the score sheet. Pack Score is a weighted mix of Accuracy (25%), Fit (20%), Protection (20%), Cost (15%), and Aesthetic (20%). **98+** is a **PERFECT PACK ✨** (confetti + haptic). Badges: SPACE MASTER, PROTECTOR, BUDGET MASTER, STYLIST, FLAWLESS.
+1. The **desk** shows the order card, special request, and box picker. Pick a carton, then tap **START PACKING**.
+2. The packing table slides up (~0.22s) as its own screen — box, shelf, wrap tray, and **PACK ORDER**. Tap **← Order** to go back and change the box (blocked once the finish sequence starts).
+3. Drag items from the shelf into the box, or tap an item twice to auto-place it (mouse or touch).
+4. Tap a packed item again, or press **↻**, to rotate. Candles and perfume stay upright (0° / 180°).
+5. Tap a packed item to wrap it. The wrap tray sits above the shelf so leftover items stay tappable.
+6. Fit every required item. Extra items cannot be added.
+7. When the layout is valid, **PACK ORDER** lights up.
+8. Run the packing finish sequence (tissue, card, flaps, sticker, tape, label, scan).
+9. **SHIPPED ✓**, then the score sheet. **NEXT ORDER** returns to the desk. Pack Score is a weighted mix of Accuracy (25%), Fit (20%), Protection (20%), Cost (15%), and Aesthetic (20%). **98+** is a **PERFECT PACK ✨** (confetti + haptic). Badges: SPACE MASTER, PROTECTOR, BUDGET MASTER, STYLIST, FLAWLESS.
 
 Some orders carry a **special request** on the order card (icon, name, and a customer quote). Honor it while you pack:
 
@@ -52,7 +53,7 @@ Best on a phone in portrait, or a desktop window around **390×844**.
 
 | File | Role |
 | --- | --- |
-| `index.html` | Shell, HUD, box, shelf, finish sequence, result sheet |
+| `index.html` | Shell, desk stage, packing stage, finish sequence, result sheet |
 | `style.css` | Mobile-first layout, safe-area insets, animations |
 | `game.js` | `PRODUCT_TYPES`, `ORDERS`, `gameState`, drag/rotate/wrap/score, finish sequence, `playSound` |
 

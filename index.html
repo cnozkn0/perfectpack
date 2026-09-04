@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div id="app">
+    <div id="app" data-stage="desk">
       <header class="hud" aria-label="Status">
         <div class="hud-chip" title="Cash">
           <span class="hud-icon" aria-hidden="true">💵</span>
@@ -79,7 +79,34 @@
         aria-label="Choose a box"
       ></div>
 
-      <section class="table" aria-label="Packing table">
+      <div class="desk-preview" aria-hidden="true">
+        <span id="desk-preview-label">Choose a box, then start packing</span>
+      </div>
+
+      <button id="start-pack-btn" class="pack-btn start-pack-btn" type="button">
+        START PACKING
+      </button>
+
+      <section id="packing-stage" class="packing-stage" aria-hidden="true">
+        <header class="pack-hud">
+          <button id="desk-back" class="desk-back" type="button">← Order</button>
+          <div class="pack-hud-mid">
+            <p id="pack-title">ORDER #001</p>
+            <p id="pack-request-line" class="pack-request-line" hidden></p>
+          </div>
+          <p id="pack-timer" class="request-timer" hidden></p>
+          <button
+            id="pack-sound-toggle"
+            class="icon-btn"
+            type="button"
+            aria-label="Mute sound"
+            aria-pressed="false"
+          >
+            <span id="pack-sound-icon" aria-hidden="true">🔊</span>
+          </button>
+        </header>
+        <ul class="order-items pack-items" id="pack-items"></ul>
+        <section class="table" aria-label="Packing table">
         <div class="table-surface">
           <div class="box" id="box">
             <div class="box-flap box-flap-top" aria-hidden="true">
@@ -112,6 +139,7 @@
         <button id="pack-btn" class="pack-btn" type="button" disabled>
           PACK ORDER
         </button>
+      </section>
       </section>
 
       <div id="finish-overlay" class="finish-overlay" data-step="tissue" aria-hidden="true">
