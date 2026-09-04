@@ -543,8 +543,8 @@
       protection: protection,
     };
 
+    clearSelection();
     startFinishSequence();
-    renderOrder();
   }
 
   function nextOrder() {
@@ -1914,13 +1914,13 @@
       el.classList.remove("hidden");
       el.classList.add("is-open");
       el.setAttribute("aria-hidden", "false");
-      el.style.display = "flex";
+      el.style.setProperty("display", "flex", "important");
     } else {
       el.classList.remove("is-open");
       el.classList.add("hidden");
       el.hidden = true;
       el.setAttribute("aria-hidden", "true");
-      el.style.display = "none";
+      el.style.setProperty("display", "none", "important");
     }
   }
 
@@ -1951,24 +1951,37 @@
   }
 
   function resetFinishVisuals() {
+    function clearClass(el, name) {
+      if (el) el.classList.remove(name);
+    }
     if (!dom.finishBox) return;
-    dom.finishTissue.classList.remove("is-tucked");
-    dom.finishTissue.style.transform = "";
-    dom.finishCardSlot.classList.remove("is-filled");
-    dom.finishCardSlot.innerHTML = "";
-    dom.finishFlapL.classList.remove("is-closed");
-    dom.finishFlapR.classList.remove("is-closed");
-    dom.finishFlapL.style.transform = "";
-    dom.finishFlapR.style.transform = "";
+    if (dom.finishTissue) {
+      dom.finishTissue.classList.remove("is-tucked");
+      dom.finishTissue.style.transform = "";
+    }
+    if (dom.finishCardSlot) {
+      dom.finishCardSlot.classList.remove("is-filled");
+      dom.finishCardSlot.innerHTML = "";
+    }
+    clearClass(dom.finishFlapL, "is-closed");
+    clearClass(dom.finishFlapR, "is-closed");
+    if (dom.finishFlapL) dom.finishFlapL.style.transform = "";
+    if (dom.finishFlapR) dom.finishFlapR.style.transform = "";
     dom.finishBox.classList.remove("is-closing", "is-scan", "is-pop");
-    dom.finishTape.classList.remove("is-on");
-    dom.finishTape.style.right = "92%";
-    dom.finishStickerSpot.classList.remove("is-on");
-    dom.finishStickerSpot.textContent = "";
-    dom.finishLabelSpot.classList.remove("is-on");
-    dom.finishLabelSpot.innerHTML = "";
-    dom.finishBarcode.classList.remove("is-scanned");
-    dom.finishShipped.classList.remove("is-on");
+    if (dom.finishTape) {
+      dom.finishTape.classList.remove("is-on");
+      dom.finishTape.style.right = "92%";
+    }
+    if (dom.finishStickerSpot) {
+      dom.finishStickerSpot.classList.remove("is-on");
+      dom.finishStickerSpot.textContent = "";
+    }
+    if (dom.finishLabelSpot) {
+      dom.finishLabelSpot.classList.remove("is-on");
+      dom.finishLabelSpot.innerHTML = "";
+    }
+    clearClass(dom.finishBarcode, "is-scanned");
+    clearClass(dom.finishShipped, "is-on");
     ["finishCard", "finishSticker", "finishLabel", "finishScanner"].forEach(function (key) {
       const el = dom[key];
       if (!el) return;
