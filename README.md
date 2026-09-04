@@ -15,6 +15,21 @@ Open `index.html` in a browser — no build step, no backend, no extra assets.
 7. Run the packing finish sequence (tissue, card, flaps, sticker, tape, label, scan).
 8. **SHIPPED ✓**, then the score sheet. Pack Score is a weighted mix of Accuracy (25%), Fit (20%), Protection (20%), Cost (15%), and Aesthetic (20%). **98+** is a **PERFECT PACK ✨** (confetti + haptic). Badges: SPACE MASTER, PROTECTOR, BUDGET MASTER, STYLIST, FLAWLESS.
 
+Some orders carry a **special request** on the order card (icon, name, and a customer quote). Honor it while you pack:
+
+| Request | What it asks |
+| --- | --- |
+| **GIFT** | Gift note required. Presentation counts. |
+| **ECO** | No plastic wrap (bubble / foam). Paper fill is a bonus. |
+| **DISCREET** | Skip the shop sticker. Placing it fails the request. |
+| **FRAGILE PLUS** | Protection requirement goes up. Wrap until the tray hits the new target. |
+| **EXPRESS** | Pack before the countdown on the card hits TIME'S UP. Sealing the box after **PACK ORDER** does not use the timer. |
+| **NO INVOICE** | Skip the card. Dropping it in fails the request. |
+| **BIRTHDAY** | Birthday card required (`"Please make it cute!"`). |
+| **PREMIUM** | Card required and a high aesthetic bar. |
+
+Wrong material during packing toasts a failure (for example bubble wrap on an **ECO** order → **ECO REQUEST FAILED**). You can still unwrap; scoring uses the **final** wraps. A failed request cuts Accuracy and Aesthetic. **DISCREET** / **NO INVOICE** finish steps offer **Skip — no branding** / **Skip — no invoice** so you can honor those asks.
+
 You start with **$100.00**. Each SKU has a `salePrice` and `productCost`. After shipping, profit is revenue − product cost − packaging (box + wrap) − shipping, plus a tip (**+5%** at 90+, **+10%** on a Perfect Pack). Seriously weak protection takes a deterministic refund, not a dice roll. Cash, XP, level, order count, perfect packs, and shop rating live on `gameState` for later shop upgrades — the level curve grows (`100 × 1.32^(level-1)` XP per level). XP: **+50** per order, **+20** at 90+, **+50** more for Perfect Pack.
 
 After **PACK ORDER** you seal the box by hand — swipe tissue, drop a thank-you card, fold both flaps, peel a sticker, tape left-to-right, place the label, then scan. Sounds are generated with the Web Audio API (`playSound("tape")` and friends in `SOUND_BANK`); drop a file path on `SOUND_BANK[id].src` later to swap in real audio without changing call sites. The HUD mute toggle still works during the sequence.
@@ -42,5 +57,6 @@ Best on a phone in portrait, or a desktop window around **390×844**.
 To add content later without rewriting the loop:
 
 - New SKU → entry in `PRODUCT_TYPES` plus a `.type-{id}` style
-- New shipment → object in `ORDERS` (`items`, optional `boxSize`)
-- Bigger carton → `BOX_SIZES.M` / `L`, then set `boxSize` on an order
+- New shipment → object in `ORDERS` (`items`, optional `idealBox`, optional `request`)
+- New request type → entry in `REQUEST_TYPES`, then set `request` on an order
+- Bigger carton → `BOX_TYPES`, then set `idealBox` on an order

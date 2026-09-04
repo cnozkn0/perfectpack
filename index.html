@@ -50,6 +50,12 @@
           <span class="order-count" id="order-count">2 items</span>
         </div>
         <ul class="order-items" id="order-items"></ul>
+        <div id="order-request" class="order-request" hidden>
+          <p class="request-kicker">Special request</p>
+          <p id="request-title" class="request-title"></p>
+          <p id="request-quote" class="request-quote"></p>
+          <p id="request-timer" class="request-timer" hidden></p>
+        </div>
       </section>
 
       <div
@@ -109,6 +115,7 @@
           <p class="finish-count" id="finish-step">01 / 08</p>
           <h2 id="finish-title">Tissue Paper</h2>
           <p class="finish-hint" id="finish-hint">Swipe down to tuck the tissue</p>
+          <button type="button" id="finish-skip" class="finish-skip" hidden>Skip</button>
 
           <div class="finish-box" id="finish-box">
             <span class="finish-swipe-cue" id="finish-swipe-cue" aria-hidden="true">↓</span>
@@ -134,7 +141,7 @@
 
           <div class="finish-props" id="finish-props">
             <div class="finish-prop finish-card is-hidden" id="finish-card" aria-label="Thank you card">
-              <span>Thank you</span>
+              <span id="finish-card-text">Thank you</span>
             </div>
             <div class="finish-prop finish-sticker is-hidden" id="finish-sticker" aria-label="Shop sticker">
               <span>PP</span>
@@ -153,6 +160,7 @@
       <div id="result-overlay" class="overlay" aria-hidden="true">
         <div class="result-sheet" role="dialog" aria-labelledby="result-title" aria-modal="true">
           <p class="result-kicker" id="result-kicker">Order packed</p>
+          <p id="result-request" class="result-request" hidden></p>
           <h2 id="result-title">GREAT PACK</h2>
           <div class="score-ring" id="score-ring">
             <strong id="result-score">0</strong>
@@ -174,6 +182,7 @@
           <button id="next-btn" class="pack-btn next-btn" type="button">NEXT ORDER</button>
         </div>
       </div>
+      <div id="request-toast" class="request-toast" hidden role="status"></div>
     </div>
 
     <div id="drag-layer" class="drag-layer" aria-hidden="true"></div>

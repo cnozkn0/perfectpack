@@ -231,6 +231,7 @@
       protection: 8,
       aesthetic: 0,
       pad: 10,
+      plastic: true,
     },
     paper_fill: {
       id: "paper_fill",
@@ -250,32 +251,204 @@
       protection: 10,
       aesthetic: 1,
       pad: 12,
+      plastic: true,
+    },
+  };
+
+  // ===========================================================================
+  // REQUEST_TYPES
+  // Optional special request on an order. Honored or failed at score time
+  // from the final wrap / finish snapshot (unwrap can still pass ECO).
+  // ===========================================================================
+  const REQUEST_TYPES = {
+    GIFT: {
+      id: "GIFT",
+      name: "Gift Wrap",
+      icon: "🎁",
+      quote: "It's a surprise — add a gift note and make it feel special.",
+      needsCard: true,
+      cardKind: "gift",
+      aestheticImportant: true,
+    },
+    ECO: {
+      id: "ECO",
+      name: "Eco Pack",
+      icon: "🌱",
+      quote: "No plastic packaging, please. Paper fill is perfect.",
+      banPlastic: true,
+      paperBonus: true,
+    },
+    DISCREET: {
+      id: "DISCREET",
+      name: "Discreet",
+      icon: "🤫",
+      quote: "No branding. Skip the shop sticker.",
+      banSticker: true,
+    },
+    FRAGILE_PLUS: {
+      id: "FRAGILE_PLUS",
+      name: "Extra Fragile",
+      icon: "📦",
+      quote: "These break easily. Extra padding, please.",
+      protectionBoost: 1.5,
+    },
+    EXPRESS: {
+      id: "EXPRESS",
+      name: "Express",
+      icon: "⚡",
+      quote: "Need this packed in a hurry!",
+      timerSeconds: 45,
+    },
+    NO_INVOICE: {
+      id: "NO_INVOICE",
+      name: "No Invoice",
+      icon: "🙈",
+      quote: "Please don't include a card or invoice.",
+      banCard: true,
+    },
+    BIRTHDAY: {
+      id: "BIRTHDAY",
+      name: "Birthday Gift",
+      icon: "🎁",
+      quote: "Please make it cute!",
+      needsCard: true,
+      cardKind: "birthday",
+      aestheticImportant: true,
+    },
+    PREMIUM: {
+      id: "PREMIUM",
+      name: "Premium",
+      icon: "✨",
+      quote: "Presentation matters. Make it look expensive.",
+      needsCard: true,
+      cardKind: "premium",
+      aestheticFloor: 90,
+      aestheticImportant: true,
     },
   };
 
   // ===========================================================================
   // ORDERS
   // items: product type id → required count. idealBox: small | medium | large
+  // request: optional REQUEST_TYPES id. quote / timerSeconds override the type.
   // ===========================================================================
   const ORDERS = [
-    { id: 1, items: { candle: 1, mug: 1 }, idealBox: "small" },
-    { id: 2, items: { tshirt: 1, candle: 1 }, idealBox: "small" },
-    { id: 3, items: { mug: 2 }, idealBox: "small" },
-    { id: 4, items: { perfume: 1, jewelry_box: 1 }, idealBox: "small" },
-    { id: 5, items: { socks: 1, tshirt: 1 }, idealBox: "small" },
-    { id: 6, items: { notebook: 1, candle: 1 }, idealBox: "small" },
-    { id: 7, items: { poster: 1, socks: 1 }, idealBox: "small" },
-    { id: 8, items: { perfume: 1, mug: 1 }, idealBox: "medium" },
-    { id: 9, items: { jewelry_box: 1, perfume: 1, socks: 1 }, idealBox: "small" },
-    { id: 10, items: { tshirt: 1, mug: 1, candle: 1 }, idealBox: "medium" },
-    { id: 11, items: { poster: 1, notebook: 1 }, idealBox: "medium" },
-    { id: 12, items: { candle: 2, tshirt: 1 }, idealBox: "medium" },
-    { id: 13, items: { perfume: 1, candle: 1, tshirt: 1 }, idealBox: "medium" },
-    { id: 14, items: { mug: 1, notebook: 1, socks: 1 }, idealBox: "medium" },
-    { id: 15, items: { poster: 1, perfume: 1, jewelry_box: 1 }, idealBox: "medium" },
-    { id: 16, items: { tshirt: 1, socks: 1, mug: 1, candle: 1 }, idealBox: "large" },
-    { id: 17, items: { perfume: 2, notebook: 1 }, idealBox: "medium" },
-    { id: 18, items: { poster: 1, tshirt: 1, mug: 1 }, idealBox: "large" },
+    {
+      id: 1,
+      items: { candle: 1, mug: 1 },
+      idealBox: "small",
+      request: "BIRTHDAY",
+      quote: "Please make it cute!",
+    },
+    {
+      id: 2,
+      items: { tshirt: 1, socks: 1 },
+      idealBox: "small",
+      request: "ECO",
+      quote: "No plastic — paper fill is a gift to the planet.",
+    },
+    {
+      id: 3,
+      items: { perfume: 1, jewelry_box: 1 },
+      idealBox: "small",
+      request: "DISCREET",
+      quote: "Keep the box anonymous. No shop sticker.",
+    },
+    {
+      id: 4,
+      items: { perfume: 1, mug: 1 },
+      idealBox: "medium",
+      request: "FRAGILE_PLUS",
+      quote: "These shatter. Extra padding, please.",
+    },
+    {
+      id: 5,
+      items: { notebook: 1, candle: 1 },
+      idealBox: "small",
+      request: "EXPRESS",
+      timerSeconds: 40,
+    },
+    {
+      id: 6,
+      items: { jewelry_box: 1 },
+      idealBox: "small",
+      request: "NO_INVOICE",
+      quote: "Skip the card — no paper trail.",
+    },
+    {
+      id: 7,
+      items: { perfume: 1, candle: 1 },
+      idealBox: "small",
+      request: "GIFT",
+      quote: "It's a surprise. Add a gift note.",
+    },
+    {
+      id: 8,
+      items: { jewelry_box: 1, perfume: 1 },
+      idealBox: "small",
+      request: "PREMIUM",
+      quote: "Make it look expensive.",
+    },
+    { id: 9, items: { mug: 2 }, idealBox: "small" },
+    { id: 10, items: { poster: 1, notebook: 1 }, idealBox: "medium", request: "ECO" },
+    {
+      id: 11,
+      items: { socks: 1, tshirt: 1, candle: 1 },
+      idealBox: "medium",
+      request: "BIRTHDAY",
+      quote: "Birthday socks — make the box feel festive.",
+    },
+    { id: 12, items: { mug: 1, candle: 1 }, idealBox: "small", request: "DISCREET" },
+    { id: 13, items: { candle: 2 }, idealBox: "small", request: "FRAGILE_PLUS" },
+    {
+      id: 14,
+      items: { tshirt: 1, mug: 1, candle: 1 },
+      idealBox: "medium",
+      request: "EXPRESS",
+      timerSeconds: 50,
+    },
+    { id: 15, items: { notebook: 1, socks: 1 }, idealBox: "small", request: "NO_INVOICE" },
+    { id: 16, items: { jewelry_box: 1, socks: 1 }, idealBox: "small", request: "GIFT" },
+    {
+      id: 17,
+      items: { candle: 1, perfume: 1, tshirt: 1 },
+      idealBox: "medium",
+      request: "PREMIUM",
+    },
+    {
+      id: 18,
+      items: { mug: 1 },
+      idealBox: "small",
+      request: "ECO",
+      quote: "Wrap the mug without a scrap of plastic.",
+    },
+    { id: 19, items: { poster: 1, socks: 1 }, idealBox: "small" },
+    {
+      id: 20,
+      items: { perfume: 1 },
+      idealBox: "small",
+      request: "BIRTHDAY",
+      quote: "Perfume for her birthday — keep it adorable.",
+    },
+    { id: 21, items: { poster: 1, tshirt: 1 }, idealBox: "medium", request: "DISCREET" },
+    {
+      id: 22,
+      items: { perfume: 1, jewelry_box: 1, socks: 1 },
+      idealBox: "small",
+      request: "FRAGILE_PLUS",
+    },
+    {
+      id: 23,
+      items: { perfume: 1, mug: 1 },
+      idealBox: "medium",
+      request: "EXPRESS",
+      timerSeconds: 35,
+    },
+    { id: 24, items: { mug: 1, notebook: 1 }, idealBox: "small", request: "GIFT" },
+    { id: 25, items: { jewelry_box: 1, notebook: 1 }, idealBox: "small", request: "PREMIUM" },
+    { id: 26, items: { tshirt: 1, candle: 1 }, idealBox: "small", request: "ECO" },
+    { id: 27, items: { perfume: 1 }, idealBox: "small", request: "NO_INVOICE" },
+    { id: 28, items: { tshirt: 1, socks: 1, mug: 1, candle: 1 }, idealBox: "large" },
   ];
 
   // ===========================================================================
@@ -303,11 +476,15 @@
     protectionCost: 0,
     pendingResult: null,
     finish: null,
+    expressDeadline: 0,
+    expressFailed: false,
     timers: {
       reject: 0,
       snap: 0,
       confetti: 0,
       scoreRaf: 0,
+      express: 0,
+      toast: 0,
     },
   };
 
@@ -327,6 +504,11 @@
     dom.orderTitle = $("order-title");
     dom.orderCount = $("order-count");
     dom.orderItems = $("order-items");
+    dom.orderRequest = $("order-request");
+    dom.requestTitle = $("request-title");
+    dom.requestQuote = $("request-quote");
+    dom.requestTimer = $("request-timer");
+    dom.requestToast = $("request-toast");
     dom.boxPicker = $("box-picker");
     dom.boxSizeTag = $("box-size-tag");
     dom.box = $("box");
@@ -345,11 +527,13 @@
     dom.finishStep = $("finish-step");
     dom.finishTitle = $("finish-title");
     dom.finishHint = $("finish-hint");
+    dom.finishSkip = $("finish-skip");
     dom.finishBox = $("finish-box");
     dom.finishBoxTag = $("finish-box-tag");
     dom.finishSwipeCue = $("finish-swipe-cue");
     dom.finishTissue = $("finish-tissue");
     dom.finishCard = $("finish-card");
+    dom.finishCardText = $("finish-card-text");
     dom.finishCardSlot = $("finish-card-slot");
     dom.finishFlapL = $("finish-flap-l");
     dom.finishFlapR = $("finish-flap-r");
@@ -367,6 +551,7 @@
     dom.resultOverlay = $("result-overlay");
     dom.resultSheet = document.querySelector(".result-sheet");
     dom.resultKicker = $("result-kicker");
+    dom.resultRequest = $("result-request");
     dom.resultTitle = $("result-title");
     dom.resultScore = $("result-score");
     dom.scoreRing = $("score-ring");
@@ -426,6 +611,52 @@
     return PRODUCT_TYPES[typeId];
   }
 
+  function getOrderRequest() {
+    const order = gameState.currentOrder;
+    if (!order || !order.request) return null;
+    const spec = REQUEST_TYPES[order.request];
+    if (!spec) return null;
+    const copy = Object.assign({}, spec);
+    if (order.quote) copy.quote = order.quote;
+    if (order.timerSeconds) copy.timerSeconds = order.timerSeconds;
+    return copy;
+  }
+
+  function getRequiredProtection(type) {
+    if (!type) return 0;
+    let required = type.requiredProtection || 0;
+    const request = getOrderRequest();
+    if (request && request.protectionBoost) {
+      if (required <= 0) required = 4;
+      required = Math.ceil(required * request.protectionBoost);
+    }
+    return required;
+  }
+
+  function orderUsesPlastic() {
+    return gameState.products.some(function (p) {
+      if (!p.inBox) return false;
+      return (p.wraps || []).some(function (id) {
+        const mat = PROTECTION_MATERIALS[id];
+        return mat && mat.plastic;
+      });
+    });
+  }
+
+  function orderUsesPaperFill() {
+    return gameState.products.some(function (p) {
+      return p.inBox && (p.wraps || []).indexOf("paper_fill") !== -1;
+    });
+  }
+
+  function failLabelFor(req) {
+    return req.id.replace(/_/g, " ") + " REQUEST FAILED";
+  }
+
+  function honorLabelFor(req) {
+    return req.id.replace(/_/g, " ") + " HONORED";
+  }
+
   function itemCount(items) {
     return Object.values(items).reduce((sum, n) => sum + n, 0);
   }
@@ -438,11 +669,91 @@
     window.clearTimeout(gameState.timers.reject);
     window.clearTimeout(gameState.timers.snap);
     window.clearTimeout(gameState.timers.confetti);
+    window.clearTimeout(gameState.timers.toast);
+    window.clearInterval(gameState.timers.express);
     window.cancelAnimationFrame(gameState.timers.scoreRaf);
     gameState.timers.reject = 0;
     gameState.timers.snap = 0;
     gameState.timers.confetti = 0;
+    gameState.timers.toast = 0;
+    gameState.timers.express = 0;
     gameState.timers.scoreRaf = 0;
+  }
+
+  function hideRequestToast() {
+    if (!dom.requestToast) return;
+    dom.requestToast.classList.remove("is-on");
+    dom.requestToast.hidden = true;
+  }
+
+  function showRequestToast(message) {
+    if (!dom.requestToast) return;
+    window.clearTimeout(gameState.timers.toast);
+    dom.requestToast.hidden = false;
+    dom.requestToast.textContent = message;
+    window.requestAnimationFrame(function () {
+      dom.requestToast.classList.add("is-on");
+    });
+    gameState.timers.toast = window.setTimeout(function () {
+      hideRequestToast();
+      gameState.timers.toast = 0;
+    }, 2200);
+  }
+
+  function formatCountdown(ms) {
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return m + ":" + String(r).padStart(2, "0");
+  }
+
+  function stopExpressTimer() {
+    window.clearInterval(gameState.timers.express);
+    gameState.timers.express = 0;
+  }
+
+  function tickExpressTimer() {
+    const el = dom.requestTimer;
+    const deadline = gameState.expressDeadline;
+    if (!deadline) {
+      if (el) el.hidden = true;
+      return;
+    }
+    const remaining = deadline - Date.now();
+    if (el) {
+      el.hidden = false;
+      if (remaining <= 0) {
+        el.textContent = "TIME'S UP";
+        el.classList.add("is-late");
+      } else {
+        el.textContent = formatCountdown(remaining);
+        el.classList.toggle("is-late", remaining <= 8000);
+      }
+    }
+    if (remaining <= 0) {
+      gameState.expressFailed = true;
+      stopExpressTimer();
+    }
+  }
+
+  function startExpressTimer() {
+    stopExpressTimer();
+    const req = getOrderRequest();
+    const seconds = req && req.timerSeconds;
+    if (!seconds) {
+      gameState.expressDeadline = 0;
+      gameState.expressFailed = false;
+      if (dom.requestTimer) {
+        dom.requestTimer.hidden = true;
+        dom.requestTimer.classList.remove("is-late");
+      }
+      return;
+    }
+    gameState.expressFailed = false;
+    gameState.expressDeadline = Date.now() + seconds * 1000;
+    if (dom.requestTimer) dom.requestTimer.classList.remove("is-late");
+    tickExpressTimer();
+    gameState.timers.express = window.setInterval(tickExpressTimer, 250);
   }
 
   // ===========================================================================
@@ -456,6 +767,9 @@
       number: gameState.orderIndex + 1,
       items: Object.assign({}, template.items),
       idealBox: idealBox,
+      request: template.request || null,
+      quote: template.quote || null,
+      timerSeconds: template.timerSeconds || null,
     };
     applySelectedBox(idealBox, { dumpItems: false });
   }
@@ -545,6 +859,8 @@
       dom.orderItems.appendChild(li);
     });
 
+    renderRequestBlock();
+
     dom.cashValue.textContent = formatMoney(gameState.cash);
     const progress = levelProgress(gameState.xp);
     if (dom.levelValue) {
@@ -556,6 +872,32 @@
     }
   }
 
+  function renderRequestBlock() {
+    const block = dom.orderRequest;
+    if (!block) return;
+    const req = getOrderRequest();
+    if (!req) {
+      block.hidden = true;
+      if (dom.requestTimer) {
+        dom.requestTimer.hidden = true;
+        dom.requestTimer.classList.remove("is-late");
+      }
+      return;
+    }
+    block.hidden = false;
+    block.className = "order-request request-" + req.id.toLowerCase().replace(/_/g, "-");
+    if (dom.requestTitle) {
+      dom.requestTitle.textContent = req.icon + " " + req.name;
+    }
+    if (dom.requestQuote) {
+      dom.requestQuote.textContent = '"' + (req.quote || "") + '"';
+    }
+    if (dom.requestTimer && !req.timerSeconds) {
+      dom.requestTimer.hidden = true;
+      dom.requestTimer.classList.remove("is-late");
+    }
+  }
+
   function validateOrder() {
     const report = buildPackingReport();
     gameState.packingReport = report;
@@ -564,6 +906,10 @@
 
   function completeOrder() {
     if (!validateOrder() || gameState.packing) return;
+    if (gameState.expressDeadline && Date.now() > gameState.expressDeadline) {
+      gameState.expressFailed = true;
+    }
+    stopExpressTimer();
     gameState.packing = true;
     dom.packBtn.disabled = true;
     gameState.pendingResult = { ready: true };
@@ -591,7 +937,9 @@
     spawnProducts();
     clearSelection();
     hideFinishSequence();
+    hideRequestToast();
     updatePackButton();
+    startExpressTimer();
   }
 
   // ===========================================================================
@@ -949,8 +1297,16 @@
     }
 
     refreshProtectionCost();
-    playSound("place");
-    haptic(8);
+    const req = getOrderRequest();
+    const mat = PROTECTION_MATERIALS[materialId];
+    if (req && req.banPlastic && mat && mat.plastic) {
+      playSound("error");
+      haptic(14);
+      showRequestToast(failLabelFor(req));
+    } else {
+      playSound("place");
+      haptic(8);
+    }
     playSnapAnimation(product.el);
     renderWrapTray();
     updatePackButton();
@@ -1532,7 +1888,7 @@
         protectionLevel: p.protectionLevel,
         softProtection: p.softProtection,
         effectiveProtection: p.effectiveProtection,
-        requiredProtection: type.requiredProtection || 0,
+        requiredProtection: getRequiredProtection(type),
         fragile: type.fragile,
         risk: protectionRisk(p),
       };
@@ -1625,22 +1981,83 @@
     return {
       tissue: finish.tissue || 0,
       cardPlaced: !!finish.cardPlaced,
+      cardSkipped: !!finish.cardSkipped,
       flapL: !!finish.flapL,
       flapR: !!finish.flapR,
       stickerPlaced: !!finish.stickerPlaced,
+      stickerSkipped: !!finish.stickerSkipped,
       tape: finish.tape || 0,
       labelPlaced: !!finish.labelPlaced,
       scanned: !!finish.scanned,
     };
   }
 
+  function evaluateRequest(finishSnap) {
+    finishSnap = finishSnap || {};
+    const req = getOrderRequest();
+    const empty = {
+      id: null,
+      honored: true,
+      fails: [],
+      failLabel: "",
+      honorLabel: "",
+      paperBonus: false,
+    };
+    if (!req) return empty;
+
+    const placed = gameState.products.filter(function (p) {
+      return p.inBox;
+    });
+    refreshProtection(placed);
+
+    const fails = [];
+    if (req.banPlastic && orderUsesPlastic()) fails.push(failLabelFor(req));
+    if (req.banSticker && finishSnap.stickerPlaced) fails.push(failLabelFor(req));
+    if (req.banCard && finishSnap.cardPlaced) fails.push(failLabelFor(req));
+    if (req.needsCard && !finishSnap.cardPlaced) fails.push(failLabelFor(req));
+    if (req.timerSeconds && gameState.expressFailed) fails.push(failLabelFor(req));
+    if (req.protectionBoost) {
+      const under = placed.some(function (p) {
+        const need = getRequiredProtection(getType(p.typeId));
+        return need > 0 && (p.effectiveProtection || 0) < need;
+      });
+      if (under) fails.push(failLabelFor(req));
+    }
+
+    const honored = fails.length === 0;
+    return {
+      id: req.id,
+      honored: honored,
+      fails: fails,
+      failLabel: fails[0] || "",
+      honorLabel: honorLabelFor(req),
+      paperBonus: !!(req.paperBonus && honored && orderUsesPaperFill()),
+      aestheticFloor: req.aestheticFloor || 0,
+    };
+  }
+
   function calculateScoreBreakdown(finishSnap) {
     const report = buildPackingReport();
-    const accuracy = scoreAccuracy(report);
+    const request = evaluateRequest(finishSnap);
+    let accuracy = scoreAccuracy(report);
     const fitInfo = scoreFit(report);
     const protInfo = scoreProtection(report);
     const cost = scoreCost();
-    const aesthetic = scoreAesthetic(finishSnap);
+    let aesthetic = scoreAesthetic(finishSnap);
+
+    if (request.id === "PREMIUM" && request.honored && aesthetic < (request.aestheticFloor || 90)) {
+      request.honored = false;
+      request.fails.push("PREMIUM REQUEST FAILED");
+      request.failLabel = "PREMIUM REQUEST FAILED";
+    }
+
+    if (request.id && !request.honored) {
+      accuracy = roundScore(accuracy - 40);
+      aesthetic = roundScore(aesthetic - 45);
+    } else if (request.paperBonus) {
+      aesthetic = roundScore(aesthetic + 12);
+    }
+
     const categories = {
       accuracy: accuracy,
       fit: fitInfo.score,
@@ -1656,7 +2073,7 @@
         categories.cost * weights.cost +
         categories.aesthetic * weights.aesthetic
     );
-    const badges = collectBadges(categories, fitInfo);
+    const badges = collectBadges(categories, fitInfo, request);
     const rank = rankFor(total);
     const perfect = rank.id === "perfect";
     const economy = calculateEconomy(total, perfect, categories.protection);
@@ -1670,6 +2087,7 @@
       protection: protInfo,
       economy: economy,
       xp: economy.xp,
+      request: request,
     };
   }
 
@@ -1682,8 +2100,15 @@
     return { id: "needs", label: "NEEDS WORK" };
   }
 
-  function collectBadges(categories, fitInfo) {
+  function collectBadges(categories, fitInfo, request) {
     const badges = [];
+    if (request && request.id) {
+      if (request.honored) {
+        badges.push({ id: "honored", label: request.honorLabel });
+      } else {
+        badges.push({ id: "failed", label: request.failLabel });
+      }
+    }
     if (
       fitInfo.minBox &&
       getSelectedBox().id === fitInfo.minBox.id &&
@@ -1914,8 +2339,7 @@
 
   function protectionRisk(product) {
     const type = getType(product.typeId);
-    if (!type.fragile) return null;
-    const required = type.requiredProtection || 0;
+    const required = getRequiredProtection(type);
     if (required <= 0) return null;
     const got = product.effectiveProtection || 0;
     if (got >= required) return null;
@@ -1928,18 +2352,18 @@
   function scoreProtection(report) {
     const placed = report.placed || [];
     refreshProtection(placed);
-    const fragiles = placed.filter(function (p) {
-      return getType(p.typeId).fragile;
+    const needProtect = placed.filter(function (p) {
+      return getRequiredProtection(getType(p.typeId)) > 0;
     });
     let fragilePts = 100;
-    if (fragiles.length) {
+    if (needProtect.length) {
       let sum = 0;
-      fragiles.forEach(function (p) {
-        const req = getType(p.typeId).requiredProtection || 0;
+      needProtect.forEach(function (p) {
+        const req = getRequiredProtection(getType(p.typeId));
         const got = p.effectiveProtection || 0;
         sum += req <= 0 ? 1 : clamp(got / req, 0, 1);
       });
-      fragilePts = (sum / fragiles.length) * 100;
+      fragilePts = (sum / needProtect.length) * 100;
     }
     const heavyN = (report.stacking && report.stacking.heavyOnFragile
       ? report.stacking.heavyOnFragile
@@ -1950,14 +2374,13 @@
     if (placed.length) {
       let packSum = 0;
       placed.forEach(function (p) {
-        const type = getType(p.typeId);
-        const req = type.requiredProtection || 0;
-        if (!type.fragile && req <= 0) {
+        const req = getRequiredProtection(getType(p.typeId));
+        if (req <= 0) {
           packSum += 100;
           return;
         }
         const got = p.effectiveProtection || 0;
-        packSum += req <= 0 ? 100 : 100 * clamp(got / req, 0, 1);
+        packSum += 100 * clamp(got / req, 0, 1);
       });
       packPts = packSum / placed.length;
     }
@@ -1970,9 +2393,15 @@
 
   function cheapestProtectionCost(required) {
     if (required <= 0) return 0;
-    const mats = Object.keys(PROTECTION_MATERIALS).map(function (id) {
-      return PROTECTION_MATERIALS[id];
-    });
+    const request = getOrderRequest();
+    const mats = Object.keys(PROTECTION_MATERIALS)
+      .map(function (id) {
+        return PROTECTION_MATERIALS[id];
+      })
+      .filter(function (mat) {
+        if (request && request.banPlastic && mat.plastic) return false;
+        return true;
+      });
     let best = Infinity;
     function search(got, cost, depth) {
       if (got >= required) {
@@ -2001,7 +2430,7 @@
     let actual = selected.cost;
     let wasteWraps = 0;
     placed.forEach(function (p) {
-      const req = getType(p.typeId).requiredProtection || 0;
+      const req = getRequiredProtection(getType(p.typeId));
       needed += cheapestProtectionCost(req);
       actual += sumWrapCost(p);
       const got = sumWrapProtection(p);
@@ -2064,10 +2493,17 @@
 
   function scoreAesthetic(finish) {
     finish = finish || {};
+    const req = getOrderRequest();
     const tissuePts =
       finish.tissue >= 0.48 ? 100 : roundScore((finish.tissue || 0) * (100 / 0.48));
-    const cardPts = finish.cardPlaced ? 100 : 0;
-    const stickerPts = finish.stickerPlaced ? 100 : 0;
+    let cardPts = finish.cardPlaced ? 100 : 0;
+    let stickerPts = finish.stickerPlaced ? 100 : 0;
+    if (req && req.banCard) {
+      cardPts = finish.cardPlaced ? 0 : 100;
+    }
+    if (req && req.banSticker) {
+      stickerPts = finish.stickerPlaced ? 0 : 100;
+    }
     let present = 0;
     if (finish.flapL && finish.flapR) present += 40;
     if ((finish.tape || 0) >= 0.78) present += 35;
@@ -2133,12 +2569,15 @@
       product.effectiveProtection = product.protectionLevel;
     }
     const got = product.effectiveProtection || 0;
-    const required = type.requiredProtection || 0;
+    const required = getRequiredProtection(type);
+    const req = getOrderRequest();
 
     dom.wrapTray.hidden = false;
     dom.wrapTray.classList.remove("hidden");
-    dom.wrapTrayLabel.textContent = "WRAP " + type.name.toUpperCase();
-    if (type.fragile && required) {
+    let wrapLabel = "WRAP " + type.name.toUpperCase();
+    if (req) wrapLabel += " · " + req.id.replace(/_/g, " ");
+    dom.wrapTrayLabel.textContent = wrapLabel;
+    if (required) {
       dom.wrapTrayStat.textContent = got + " / " + required;
       dom.wrapTrayStat.classList.toggle("is-risk", got < required);
     } else {
@@ -2171,7 +2610,10 @@
     });
     Array.prototype.forEach.call(dom.wrapOptions.querySelectorAll(".wrap-choice"), function (btn) {
       const id = btn.getAttribute("data-wrap");
+      const mat = PROTECTION_MATERIALS[id];
       btn.classList.toggle("is-on", !!counts[id]);
+      btn.classList.toggle("is-banned", !!(req && req.banPlastic && mat && mat.plastic));
+      btn.classList.toggle("is-eco-pick", !!(req && req.paperBonus && id === "paper_fill"));
     });
     if (dom.unwrapBtn) {
       dom.unwrapBtn.disabled = !(product.wraps && product.wraps.length);
@@ -2220,8 +2662,26 @@
     const badges = breakdown.badges || [];
     const perfect = !!breakdown.perfect;
 
+    const request = breakdown.request;
+    if (dom.resultRequest) {
+      if (request && request.id) {
+        dom.resultRequest.hidden = false;
+        dom.resultRequest.textContent = request.honored ? request.honorLabel : request.failLabel;
+        dom.resultRequest.className =
+          "result-request " + (request.honored ? "is-honored" : "is-failed");
+      } else {
+        dom.resultRequest.hidden = true;
+        dom.resultRequest.textContent = "";
+        dom.resultRequest.className = "result-request";
+      }
+    }
+
     dom.resultTitle.textContent = rank.label;
-    if (cats.protection < CONFIG.REFUND_SOFT_BELOW) {
+    if (request && request.id && !request.honored) {
+      dom.resultKicker.textContent = request.failLabel;
+    } else if (request && request.id && request.honored) {
+      dom.resultKicker.textContent = request.honorLabel;
+    } else if (cats.protection < CONFIG.REFUND_SOFT_BELOW) {
       dom.resultKicker.textContent = "Fragile items need more wrap";
     } else if (perfect) {
       dom.resultKicker.textContent = "Every millimetre earned it";
@@ -2472,10 +2932,12 @@
       step: 0,
       tissue: 0,
       cardPlaced: false,
+      cardSkipped: false,
       flapL: false,
       flapR: false,
       stickerPeeled: false,
       stickerPlaced: false,
+      stickerSkipped: false,
       tape: 0,
       labelPlaced: false,
       scanned: false,
@@ -2515,6 +2977,7 @@
   function hideFinishSequence() {
     setOverlayOpen(dom.finishOverlay, false);
     if (dom.app) dom.app.classList.remove("is-finishing");
+    if (dom.finishSkip) dom.finishSkip.hidden = true;
     gameState.finish = emptyFinishState();
     resetFinishVisuals();
   }
@@ -2561,12 +3024,73 @@
     });
   }
 
+  function cardCopy() {
+    const req = getOrderRequest();
+    if (req && req.cardKind === "birthday") {
+      return {
+        title: "Birthday Card",
+        hint: "Drop the birthday card into the box",
+        label: "Happy birthday",
+      };
+    }
+    if (req && req.cardKind === "gift") {
+      return {
+        title: "Gift Note",
+        hint: "Drop the gift note into the box",
+        label: "For you",
+      };
+    }
+    if (req && req.cardKind === "premium") {
+      return {
+        title: "Presentation Card",
+        hint: "Tuck in a presentation card",
+        label: "With care",
+      };
+    }
+    if (req && req.banCard) {
+      return {
+        title: "Invoice / Card",
+        hint: "This order asked for no invoice. Skip it.",
+        label: "Invoice",
+      };
+    }
+    return {
+      title: "Thank You Card",
+      hint: "Drop the card into the box",
+      label: "Thank you",
+    };
+  }
+
+  function skipFinishStep() {
+    const finish = gameState.finish;
+    if (!finish || !finish.active) return;
+    const id = finishStepId();
+    const req = getOrderRequest();
+    if (id === "card" && req && req.banCard) {
+      finish.cardSkipped = true;
+      finish.cardPlaced = false;
+      if (dom.finishSkip) dom.finishSkip.hidden = true;
+      if (dom.finishCard) dom.finishCard.classList.add("is-hidden");
+      succeedFinish("place");
+      return;
+    }
+    if (id === "sticker" && req && req.banSticker) {
+      finish.stickerSkipped = true;
+      finish.stickerPlaced = false;
+      if (dom.finishSkip) dom.finishSkip.hidden = true;
+      if (dom.finishSticker) dom.finishSticker.classList.add("is-hidden");
+      succeedFinish("place");
+    }
+  }
+
   function showFinishStep(index) {
     const finish = gameState.finish;
     finish.step = index;
     finish.gesture = null;
     const step = FINISH_STEPS[index];
     const id = step.id;
+    const req = getOrderRequest();
+    const copy = cardCopy();
     if (dom.finishOverlay) {
       dom.finishOverlay.dataset.step = id;
       setOverlayOpen(dom.finishOverlay, true);
@@ -2575,9 +3099,36 @@
       dom.finishStep.textContent = String(index + 1).padStart(2, "0") + " / " + FINISH_STEPS.length;
     }
     if (dom.finishTitle) {
-      dom.finishTitle.textContent = id === "shipped" ? "SHIPPED ✓" : step.title;
+      if (id === "shipped") {
+        dom.finishTitle.textContent = "SHIPPED ✓";
+      } else if (id === "card") {
+        dom.finishTitle.textContent = copy.title;
+      } else if (id === "sticker" && req && req.banSticker) {
+        dom.finishTitle.textContent = "Shop Sticker";
+      } else {
+        dom.finishTitle.textContent = step.title;
+      }
     }
-    if (dom.finishHint) dom.finishHint.textContent = step.hint;
+    if (dom.finishHint) {
+      if (id === "card") dom.finishHint.textContent = copy.hint;
+      else if (id === "sticker" && req && req.banSticker) {
+        dom.finishHint.textContent = "Skip the sticker — no branding on this box.";
+      } else {
+        dom.finishHint.textContent = step.hint;
+      }
+    }
+    if (dom.finishCardText) dom.finishCardText.textContent = copy.label;
+    if (dom.finishSkip) {
+      const showSkip =
+        (id === "card" && req && req.banCard && !finish.cardPlaced && !finish.cardSkipped) ||
+        (id === "sticker" && req && req.banSticker && !finish.stickerPlaced && !finish.stickerSkipped);
+      dom.finishSkip.hidden = !showSkip;
+      if (id === "card" && req && req.banCard) {
+        dom.finishSkip.textContent = "Skip — no invoice";
+      } else if (id === "sticker" && req && req.banSticker) {
+        dom.finishSkip.textContent = "Skip — no branding";
+      }
+    }
     if (dom.finishRail) {
       Array.prototype.forEach.call(dom.finishRail.querySelectorAll("[data-finish]"), function (el) {
         const key = el.getAttribute("data-finish");
@@ -2685,11 +3236,16 @@
     const id = finishStepId();
     if (id === "shipped") return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
+    const target = event.target;
+    if (target.closest && target.closest("#finish-skip")) {
+      event.preventDefault();
+      skipFinishStep();
+      return;
+    }
     event.preventDefault();
     resumeAudio();
 
     const finish = gameState.finish;
-    const target = event.target;
 
     if (id === "tissue") {
       finish.gesture = {
@@ -2876,9 +3432,10 @@
 
       if (id === "card" && overBox) {
         finish.cardPlaced = true;
+        finish.cardSkipped = false;
         prop.classList.add("is-hidden");
         dom.finishCardSlot.classList.add("is-filled");
-        dom.finishCardSlot.innerHTML = "<span>Thank you</span>";
+        dom.finishCardSlot.innerHTML = "<span>" + cardCopy().label + "</span>";
         succeedFinish("card");
         return;
       }
@@ -2956,6 +3513,7 @@
     spawnProducts();
     renderOrder();
     updatePackButton();
+    startExpressTimer();
   }
 
   // ===========================================================================
