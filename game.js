@@ -11,13 +11,31 @@
   const CONFIG = {
     SNAP_GRID: 2,
     TAP_MOVE_PX: 16,
-    PERFECT_MIN: 90,
-    GREAT_MIN: 75,
-    GOOD_MIN: 60,
+    PERFECT_MIN: 98,
+    AMAZING_MIN: 90,
+    GREAT_MIN: 80,
+    GOOD_MIN: 70,
+    OKAY_MIN: 60,
     PERFECT_MONEY_BONUS: 50,
     PERFECT_XP_BONUS: 20,
     SPACE_MASTER_MONEY: 30,
     SPACE_MASTER_XP: 15,
+    PROTECTOR_MONEY: 18,
+    PROTECTOR_XP: 8,
+    BUDGET_MASTER_MONEY: 18,
+    BUDGET_MASTER_XP: 8,
+    STYLIST_MONEY: 18,
+    STYLIST_XP: 8,
+    FLAWLESS_MONEY: 25,
+    FLAWLESS_XP: 12,
+    SCORE_WEIGHTS: {
+      accuracy: 0.25,
+      fit: 0.2,
+      protection: 0.2,
+      cost: 0.15,
+      aesthetic: 0.2,
+    },
+    SPACE_MASTER_FIT: 90,
     SOUND_STORAGE_KEY: "perfect-pack-sound",
     COMPRESS_FACTOR: 0.72,
     SOFT_PROTECT_GAP: 8,
@@ -335,12 +353,11 @@
     dom.resultTitle = $("result-title");
     dom.resultScore = $("result-score");
     dom.scoreRing = $("score-ring");
+    dom.scoreCats = $("score-cats");
+    dom.resultBadges = $("result-badges");
     dom.resultMoney = $("result-money");
     dom.resultXp = $("result-xp");
     dom.resultBonus = $("result-bonus");
-    dom.resultSpace = $("result-space");
-    dom.resultProtection = $("result-protection");
-    dom.resultRisks = $("result-risks");
     dom.nextBtn = $("next-btn");
   }
 
@@ -507,42 +524,7 @@
     if (!validateOrder() || gameState.packing) return;
     gameState.packing = true;
     dom.packBtn.disabled = true;
-
-    const score = calculatePackScore();
-    const protection = calculateProtectionScore();
-    const spaceMaster = isSpaceMaster();
-    const selected = getSelectedBox();
-    const ideal = getIdealBox();
-    const sizeDelta = selected.rank - ideal.rank;
-    const perfect = score >= CONFIG.PERFECT_MIN && protection.allSafe;
-
-    let money = Math.round(8 + score * 0.42);
-    let xp = Math.round(4 + score * 0.16);
-
-    if (sizeDelta > 0) {
-      money = Math.max(1, Math.round(money * (1 - 0.22 * sizeDelta)));
-    }
-    money = Math.max(0, Math.round(money / selected.shippingMultiplier));
-    money = Math.max(0, money - Math.ceil(gameState.protectionCost * 10));
-
-    if (perfect) {
-      money += CONFIG.PERFECT_MONEY_BONUS;
-      xp += CONFIG.PERFECT_XP_BONUS;
-    }
-    if (spaceMaster) {
-      money += CONFIG.SPACE_MASTER_MONEY;
-      xp += CONFIG.SPACE_MASTER_XP;
-    }
-
-    gameState.pendingResult = {
-      score: score,
-      money: money,
-      xp: xp,
-      perfect: perfect,
-      spaceMaster: spaceMaster,
-      protection: protection,
-    };
-
+    gameState.pendingResult = { ready: true };
     clearSelection();
     startFinishSequence();
   }
@@ -1579,74 +1561,245 @@
 
   // ===========================================================================
   // SCORING FUNCTIONS
+  // Weighted pack score: Accuracy 25, Fit 20, Protection 20, Cost 15, Aesthetic 20.
   // ===========================================================================
-  function calculatePackScore() {
-    const placed = gameState.products.filter(function (p) {
-      return p.inBox;
+  const SCORE_CATS = [
+    { id: "accuracy", label: "Accuracy", weight: 25 },
+    { id: "fit", label: "Fit", weight: 20 },
+    { id: "protection", label: "Protection", weight: 20 },
+    { id: "cost", label: "Cost", weight: 15 },
+    { id: "aesthetic", label: "Aesthetic", weight: 20 },
+  ];
+
+  const GIFT_TYPES = { candle: 1, perfume: 1, jewelry_box: 1, mug: 1 };
+  const EVERYDAY_TYPES = { tshirt: 1, socks: 1, poster: 1, notebook: 1 };
+
+  function roundScore(n) {
+    return clamp(Math.round(n), 0, 100);
+  }
+
+  function snapshotFinish(finish) {
+    finish = finish || gameState.finish || {};
+    return {
+      tissue: finish.tissue || 0,
+      cardPlaced: !!finish.cardPlaced,
+      flapL: !!finish.flapL,
+      flapR: !!finish.flapR,
+      stickerPlaced: !!finish.stickerPlaced,
+      tape: finish.tape || 0,
+      labelPlaced: !!finish.labelPlaced,
+      scanned: !!finish.scanned,
+    };
+  }
+
+  function calculateScoreBreakdown(finishSnap) {
+    const report = buildPackingReport();
+    const accuracy = scoreAccuracy(report);
+    const fitInfo = scoreFit(report);
+    const protInfo = scoreProtection(report);
+    const cost = scoreCost();
+    const aesthetic = scoreAesthetic(finishSnap);
+    const categories = {
+      accuracy: accuracy,
+      fit: fitInfo.score,
+      protection: protInfo.score,
+      cost: cost,
+      aesthetic: aesthetic,
+    };
+    const weights = CONFIG.SCORE_WEIGHTS;
+    const total = roundScore(
+      categories.accuracy * weights.accuracy +
+        categories.fit * weights.fit +
+        categories.protection * weights.protection +
+        categories.cost * weights.cost +
+        categories.aesthetic * weights.aesthetic
+    );
+    const badges = collectBadges(categories, fitInfo);
+    const rank = rankFor(total);
+    const perfect = rank.id === "perfect";
+    const reward = rewardsFromBreakdown(total, badges, perfect);
+    return {
+      total: total,
+      categories: categories,
+      badges: badges,
+      rank: rank,
+      perfect: perfect,
+      fitInfo: fitInfo,
+      protection: protInfo,
+      money: reward.money,
+      xp: reward.xp,
+    };
+  }
+
+  function rankFor(total) {
+    if (total >= CONFIG.PERFECT_MIN) return { id: "perfect", label: "PERFECT PACK ✨" };
+    if (total >= CONFIG.AMAZING_MIN) return { id: "amazing", label: "AMAZING" };
+    if (total >= CONFIG.GREAT_MIN) return { id: "great", label: "GREAT" };
+    if (total >= CONFIG.GOOD_MIN) return { id: "good", label: "GOOD" };
+    if (total >= CONFIG.OKAY_MIN) return { id: "okay", label: "OKAY" };
+    return { id: "needs", label: "NEEDS WORK" };
+  }
+
+  function collectBadges(categories, fitInfo) {
+    const badges = [];
+    if (
+      fitInfo.minBox &&
+      getSelectedBox().id === fitInfo.minBox.id &&
+      categories.fit >= CONFIG.SPACE_MASTER_FIT
+    ) {
+      badges.push({ id: "space", label: "SPACE MASTER" });
+    }
+    if (categories.protection >= 100) badges.push({ id: "protector", label: "PROTECTOR" });
+    if (categories.cost >= 95) badges.push({ id: "budget", label: "BUDGET MASTER" });
+    if (categories.aesthetic >= 100) badges.push({ id: "stylist", label: "STYLIST" });
+    const allHigh = SCORE_CATS.every(function (cat) {
+      return categories[cat.id] >= 95;
+    });
+    if (allHigh) badges.push({ id: "flawless", label: "FLAWLESS" });
+    return badges;
+  }
+
+  function rewardsFromBreakdown(total, badges, perfect) {
+    const selected = getSelectedBox();
+    let money = Math.round(8 + total * 0.42);
+    let xp = Math.round(4 + total * 0.16);
+    const sizeDelta = selected.rank - getIdealBox().rank;
+    if (sizeDelta > 0) {
+      money = Math.max(1, Math.round(money * (1 - 0.22 * sizeDelta)));
+    }
+    money = Math.max(0, Math.round(money / selected.shippingMultiplier));
+    money = Math.max(0, money - Math.ceil(gameState.protectionCost * 10));
+
+    const ids = {};
+    badges.forEach(function (b) {
+      ids[b.id] = true;
+    });
+    if (perfect) {
+      money += CONFIG.PERFECT_MONEY_BONUS;
+      xp += CONFIG.PERFECT_XP_BONUS;
+    }
+    if (ids.space) {
+      money += CONFIG.SPACE_MASTER_MONEY;
+      xp += CONFIG.SPACE_MASTER_XP;
+    }
+    if (ids.protector) {
+      money += CONFIG.PROTECTOR_MONEY;
+      xp += CONFIG.PROTECTOR_XP;
+    }
+    if (ids.budget) {
+      money += CONFIG.BUDGET_MASTER_MONEY;
+      xp += CONFIG.BUDGET_MASTER_XP;
+    }
+    if (ids.stylist) {
+      money += CONFIG.STYLIST_MONEY;
+      xp += CONFIG.STYLIST_XP;
+    }
+    if (ids.flawless) {
+      money += CONFIG.FLAWLESS_MONEY;
+      xp += CONFIG.FLAWLESS_XP;
+    }
+    return { money: money, xp: xp };
+  }
+
+  function scoreAccuracy(report) {
+    const order = gameState.currentOrder;
+    if (!order) return 0;
+    const placed = report.placed || [];
+    const needed = order.items;
+    const counts = {};
+    placed.forEach(function (p) {
+      counts[p.typeId] = (counts[p.typeId] || 0) + 1;
     });
 
+    const types = Object.keys(needed);
+    let typePts = 0;
+    types.forEach(function (id) {
+      const want = needed[id];
+      const got = counts[id] || 0;
+      typePts += 100 * (1 - clamp(Math.abs(got - want) / Math.max(1, want), 0, 1));
+    });
+    typePts = types.length ? typePts / types.length : 0;
+
+    let extra = 0;
+    Object.keys(counts).forEach(function (id) {
+      if (!needed[id]) extra += counts[id];
+    });
+    const requiredTotal = itemCount(needed);
+    let matched = 0;
+    types.forEach(function (id) {
+      matched += Math.min(counts[id] || 0, needed[id]);
+    });
+    const qtyPts = clamp(100 * (matched / Math.max(1, requiredTotal)) - extra * 25, 0, 100);
+
+    let requestPts = 100;
+    placed.forEach(function (p) {
+      const type = getType(p.typeId);
+      if (type.uprightOnly && !isUpright(p)) requestPts -= 40;
+    });
+    if (placed.length !== gameState.products.length) requestPts -= 20;
+    if (extra) requestPts -= 20;
+
+    return roundScore(typePts * 0.4 + qtyPts * 0.35 + clamp(requestPts, 0, 100) * 0.25);
+  }
+
+  function theoreticalMinBox(placed) {
+    let maxW = 0;
+    let maxH = 0;
+    let area = 0;
+    placed.forEach(function (p) {
+      const r = getRect(p);
+      maxW = Math.max(maxW, r.w);
+      maxH = Math.max(maxH, r.h);
+      area += r.w * r.h;
+    });
+    const needArea = area * 1.12;
+    const ids = ["small", "medium", "large"];
+    for (let i = 0; i < ids.length; i += 1) {
+      const box = BOX_TYPES[ids[i]];
+      if (box.width >= maxW && box.height >= maxH && box.width * box.height >= needArea) {
+        return box;
+      }
+    }
+    return BOX_TYPES.large;
+  }
+
+  function scoreFit(report) {
+    const placed = report.placed || [];
+    const box = getSelectedBox();
+    const boxArea = Math.max(1, box.width * box.height);
+    let productArea = 0;
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
-    let productArea = 0;
+    let overlaps = 0;
     placed.forEach(function (p) {
       const r = getRect(p);
+      productArea += r.w * r.h;
       minX = Math.min(minX, r.x);
       minY = Math.min(minY, r.y);
       maxX = Math.max(maxX, r.x + r.w);
       maxY = Math.max(maxY, r.y + r.h);
-      productArea += r.w * r.h;
+      if (isOverlapping(p, placed)) overlaps += 1;
     });
-    const bboxArea = Math.max(1, (maxX - minX) * (maxY - minY));
-    const compactness = clamp(productArea / bboxArea, 0, 1);
-    const efficiencyScore = 20 * clamp((compactness - 0.35) / 0.6, 0, 1);
+    const fill = productArea / boxArea;
+    const minBox = theoreticalMinBox(placed);
+    const emptyPts =
+      box.id === minBox.id ? 100 : roundScore(100 * clamp(fill / 0.5, 0, 1));
+    const delta = box.rank - getIdealBox().rank;
+    const sizePts = delta < 0 ? 100 : delta === 0 ? 92 : delta === 1 ? 40 : 10;
+    const overlapPts = overlaps ? 0 : 100;
+    const boundsW = Math.max(1, maxX - minX);
+    const boundsH = Math.max(1, maxY - minY);
+    const compact = productArea / Math.max(1, boundsW * boundsH);
+    const compactPts = roundScore(100 * clamp((compact - 0.32) / 0.58, 0, 1));
 
-    let gapScore = 15;
-    if (placed.length >= 2) {
-      let total = 0;
-      placed.forEach(function (p) {
-        const a = getRect(p);
-        let nearest = Infinity;
-        placed.forEach(function (other) {
-          if (other.id === p.id) return;
-          nearest = Math.min(nearest, rectGap(a, getRect(other)));
-        });
-        total += nearest;
-      });
-      const mean = total / placed.length;
-      gapScore = 15 * (1 - clamp(mean / 42, 0, 1));
-    }
-
-    const boxScore = calculateBoxEfficiencyScore();
-    const correctScore = 40;
-    let aestheticPenalty = 0;
-    placed.forEach(function (p) {
-      if (p.compressed) aestheticPenalty += CONFIG.COMPRESS_AESTHETIC_PENALTY;
-      const wrapLook = sumWrapAesthetic(p);
-      if (wrapLook) aestheticPenalty -= wrapLook * 0.25;
-    });
-    const report = gameState.packingReport || buildPackingReport();
-    if (report.stacking && report.stacking.heavyOnFragile) {
-      aestheticPenalty += report.stacking.heavyOnFragile.length * CONFIG.STACK_AESTHETIC_PENALTY;
-    }
-
-    return clamp(
-      Math.round(correctScore + efficiencyScore + gapScore + boxScore - aestheticPenalty),
-      0,
-      100
-    );
-  }
-
-  function calculateBoxEfficiencyScore() {
-    const delta = getSelectedBox().rank - getIdealBox().rank;
-    if (delta <= 0) return 25;
-    if (delta === 1) return 10;
-    return 0;
-  }
-
-  function isSpaceMaster() {
-    return getSelectedBox().rank < getIdealBox().rank;
+    return {
+      score: roundScore(emptyPts * 0.3 + sizePts * 0.3 + overlapPts * 0.2 + compactPts * 0.2),
+      fill: fill,
+      overlaps: overlaps,
+      minBox: minBox,
+    };
   }
 
   function protectionRisk(product) {
@@ -1662,49 +1815,161 @@
     return "LOW";
   }
 
-  function calculateProtectionScore() {
-    const placed = gameState.products.filter(function (p) {
-      return p.inBox;
-    });
+  function scoreProtection(report) {
+    const placed = report.placed || [];
     refreshProtection(placed);
     const fragiles = placed.filter(function (p) {
       return getType(p.typeId).fragile;
     });
-    if (!fragiles.length) {
-      return { pct: 100, allSafe: true, items: [] };
+    let fragilePts = 100;
+    if (fragiles.length) {
+      let sum = 0;
+      fragiles.forEach(function (p) {
+        const req = getType(p.typeId).requiredProtection || 0;
+        const got = p.effectiveProtection || 0;
+        sum += req <= 0 ? 1 : clamp(got / req, 0, 1);
+      });
+      fragilePts = (sum / fragiles.length) * 100;
     }
-
-    let sum = 0;
-    const items = fragiles.map(function (p) {
-      const type = getType(p.typeId);
-      const required = type.requiredProtection || 0;
-      const got = p.effectiveProtection || 0;
-      const ratio = required <= 0 ? 1 : clamp(got / required, 0, 1);
-      sum += ratio;
-      return {
-        name: type.name,
-        got: got,
-        required: required,
-        risk: protectionRisk(p),
-      };
-    });
-
+    const heavyN = (report.stacking && report.stacking.heavyOnFragile
+      ? report.stacking.heavyOnFragile
+      : []
+    ).length;
+    const heavyPts = clamp(100 - heavyN * 40, 0, 100);
+    let packPts = 100;
+    if (placed.length) {
+      let packSum = 0;
+      placed.forEach(function (p) {
+        const type = getType(p.typeId);
+        const req = type.requiredProtection || 0;
+        if (!type.fragile && req <= 0) {
+          packSum += 100;
+          return;
+        }
+        const got = p.effectiveProtection || 0;
+        packSum += req <= 0 ? 100 : 100 * clamp(got / req, 0, 1);
+      });
+      packPts = packSum / placed.length;
+    }
+    const score = roundScore(fragilePts * 0.5 + heavyPts * 0.25 + packPts * 0.25);
     return {
-      pct: Math.round((sum / fragiles.length) * 100),
-      allSafe: items.every(function (item) {
-        return !item.risk;
-      }),
-      items: items,
+      score: score,
+      allSafe: fragilePts >= 99.5 && heavyN === 0,
     };
   }
 
-  function ratingFor(score, protectionSafe) {
-    const safe = protectionSafe !== false;
-    if (score >= CONFIG.PERFECT_MIN && safe) return "PERFECT PACK";
-    if (score >= CONFIG.PERFECT_MIN && !safe) return "GREAT PACK";
-    if (score >= CONFIG.GREAT_MIN) return "GREAT PACK";
-    if (score >= CONFIG.GOOD_MIN) return "GOOD PACK";
-    return "NEEDS IMPROVEMENT";
+  function cheapestProtectionCost(required) {
+    if (required <= 0) return 0;
+    const mats = Object.keys(PROTECTION_MATERIALS).map(function (id) {
+      return PROTECTION_MATERIALS[id];
+    });
+    let best = Infinity;
+    function search(got, cost, depth) {
+      if (got >= required) {
+        best = Math.min(best, cost);
+        return;
+      }
+      if (depth >= CONFIG.MAX_WRAPS || cost >= best) return;
+      for (let i = 0; i < mats.length; i += 1) {
+        search(got + mats[i].protection, cost + mats[i].cost, depth + 1);
+      }
+    }
+    search(0, 0, 0);
+    return best === Infinity ? 0 : best;
+  }
+
+  function scoreCost() {
+    const placed = gameState.products.filter(function (p) {
+      return p.inBox;
+    });
+    const selected = getSelectedBox();
+    const ideal = getIdealBox();
+    const delta = selected.rank - ideal.rank;
+    const boxPts = delta <= 0 ? 100 : delta === 1 ? 55 : 18;
+
+    let needed = ideal.cost;
+    let actual = selected.cost;
+    let wasteWraps = 0;
+    placed.forEach(function (p) {
+      const req = getType(p.typeId).requiredProtection || 0;
+      needed += cheapestProtectionCost(req);
+      actual += sumWrapCost(p);
+      const got = sumWrapProtection(p);
+      if (req <= 0 && (p.wraps || []).length) wasteWraps += p.wraps.length;
+      if (req > 0 && got > req * 2.2 && (p.wraps || []).length >= 3) wasteWraps += 1;
+    });
+    const ratio = actual / Math.max(0.01, needed);
+    let matPts;
+    if (ratio <= 1.08) matPts = 100;
+    else if (ratio <= 1.45) matPts = 100 - ((ratio - 1.08) / 0.37) * 42;
+    else matPts = clamp(58 - (ratio - 1.45) * 50, 0, 58);
+    const wastePts = clamp(100 - wasteWraps * 22, 0, 100);
+    return roundScore(boxPts * 0.45 + matPts * 0.35 + wastePts * 0.2);
+  }
+
+  function orderVibe() {
+    const items = (gameState.currentOrder && gameState.currentOrder.items) || {};
+    let gift = 0;
+    let everyday = 0;
+    Object.keys(items).forEach(function (id) {
+      const n = items[id];
+      if (GIFT_TYPES[id]) gift += n;
+      if (EVERYDAY_TYPES[id]) everyday += n;
+    });
+    if (gift > everyday) return "gift";
+    if (everyday > gift) return "everyday";
+    return "mixed";
+  }
+
+  function packagingStyleScore() {
+    const placed = gameState.products.filter(function (p) {
+      return p.inBox;
+    });
+    const vibe = orderVibe();
+    let pts = 70;
+    placed.forEach(function (p) {
+      const type = getType(p.typeId);
+      const wraps = p.wraps || [];
+      const hasTissue = wraps.indexOf("tissue") !== -1;
+      const hasBubble = wraps.indexOf("bubble") !== -1;
+      const hasFoam = wraps.indexOf("foam") !== -1;
+      const hasPaper = wraps.indexOf("paper_fill") !== -1;
+      if (vibe === "gift") {
+        if (type.fragile && hasTissue) pts += 10;
+        if (type.fragile && (hasBubble || hasFoam || hasPaper) && hasTissue) pts += 6;
+        if (p.compressed) pts -= 10;
+        if (!type.fragile && hasFoam) pts -= 6;
+      } else if (vibe === "everyday") {
+        if (type.soft && p.compressed) pts += 6;
+        if (type.soft && hasPaper) pts += 5;
+        if (type.soft && hasFoam) pts -= 8;
+        if (type.fragile && (hasBubble || hasFoam || hasPaper || hasTissue)) pts += 6;
+      } else {
+        if (type.fragile && (hasTissue || hasBubble || hasPaper)) pts += 5;
+        if (type.soft && (hasPaper || p.compressed)) pts += 4;
+      }
+    });
+    return clamp(pts, 0, 100);
+  }
+
+  function scoreAesthetic(finish) {
+    finish = finish || {};
+    const tissuePts =
+      finish.tissue >= 0.48 ? 100 : roundScore((finish.tissue || 0) * (100 / 0.48));
+    const cardPts = finish.cardPlaced ? 100 : 0;
+    const stickerPts = finish.stickerPlaced ? 100 : 0;
+    let present = 0;
+    if (finish.flapL && finish.flapR) present += 40;
+    if ((finish.tape || 0) >= 0.78) present += 35;
+    if (finish.labelPlaced) present += 25;
+    const stylePts = packagingStyleScore();
+    return roundScore(
+      tissuePts * 0.22 +
+        cardPts * 0.22 +
+        stickerPts * 0.22 +
+        present * 0.14 +
+        stylePts * 0.2
+    );
   }
 
   // ===========================================================================
@@ -1836,74 +2101,115 @@
     updateShelfHint();
   }
 
-  function showResult(score, money, xp, perfect, spaceMaster, protection) {
+  function showResult(breakdown) {
     if (gameState.finish && gameState.finish.active && !gameState.finish.completed) return;
-    protection = protection || calculateProtectionScore();
-    dom.resultTitle.textContent = ratingFor(score, protection.allSafe);
-    if (!protection.allSafe) {
+    if (!breakdown) return;
+
+    const rank = breakdown.rank;
+    const cats = breakdown.categories;
+    const badges = breakdown.badges || [];
+    const perfect = !!breakdown.perfect;
+
+    dom.resultTitle.textContent = rank.label;
+    if (perfect) {
+      dom.resultKicker.textContent = "Every millimetre earned it";
+    } else if (badges.length) {
+      dom.resultKicker.textContent = badges[0].label;
+    } else if (cats.protection < 80) {
       dom.resultKicker.textContent = "Fragile items need more wrap";
-    } else if (spaceMaster) {
-      dom.resultKicker.textContent = "SPACE MASTER · smaller than ideal";
     } else {
-      dom.resultKicker.textContent = perfect ? "Every millimetre earned it" : "Order packed";
+      dom.resultKicker.textContent = "Order packed";
     }
-    dom.resultSheet.classList.toggle("perfect", perfect || spaceMaster);
-    dom.resultMoney.textContent = "+$" + money;
-    dom.resultXp.textContent = "+" + xp;
-    dom.resultBonus.hidden = !perfect;
-    dom.resultBonus.classList.toggle("hidden", !perfect);
-    if (dom.resultSpace) {
-      dom.resultSpace.hidden = !spaceMaster;
-      dom.resultSpace.classList.toggle("hidden", !spaceMaster);
+    dom.resultSheet.className = "result-sheet rank-" + rank.id + (perfect ? " perfect" : "");
+    dom.resultMoney.textContent = "+$" + breakdown.money;
+    dom.resultXp.textContent = "+" + breakdown.xp;
+    if (dom.resultBonus) {
+      dom.resultBonus.hidden = !perfect;
+      dom.resultBonus.classList.toggle("hidden", !perfect);
     }
-    if (dom.resultProtection) {
-      dom.resultProtection.textContent = protection.pct + "%";
-    }
-    if (dom.resultRisks) {
-      dom.resultRisks.innerHTML = "";
-      protection.items.forEach(function (item) {
-        if (!item.risk) return;
-        const li = document.createElement("li");
-        li.className = "risk-line risk-" + item.risk.toLowerCase();
-        li.innerHTML =
-          "<span>" +
-          item.name.toUpperCase() +
-          "</span><span>Protection " +
-          item.got +
-          " / Required " +
-          item.required +
-          "</span><strong>" +
-          item.risk +
-          " DAMAGE RISK</strong>";
-        dom.resultRisks.appendChild(li);
-      });
-    }
+
+    renderScoreCats(cats, true);
+    renderResultBadges(badges);
+
     dom.resultScore.textContent = "0";
     dom.scoreRing.style.setProperty("--p", "0%");
 
     setOverlayOpen(dom.resultOverlay, true);
+    countUpBreakdown(breakdown);
+  }
 
-    countUp(score);
+  function renderScoreCats(categories, reset) {
+    if (!dom.scoreCats) return;
+    if (!dom.scoreCats.childElementCount) {
+      SCORE_CATS.forEach(function (cat) {
+        const li = document.createElement("li");
+        li.className = "score-cat score-cat-" + cat.id;
+        li.dataset.cat = cat.id;
+        li.innerHTML =
+          '<div class="score-cat-top">' +
+          "<span>" +
+          cat.label +
+          '</span><small>' +
+          cat.weight +
+          '%</small><em>0</em></div>' +
+          '<div class="score-cat-bar" aria-hidden="true"><i></i></div>';
+        dom.scoreCats.appendChild(li);
+      });
+    }
+    Array.prototype.forEach.call(dom.scoreCats.children, function (li) {
+      const id = li.dataset.cat;
+      const value = reset ? 0 : categories[id] || 0;
+      const em = li.querySelector("em");
+      const fill = li.querySelector("i");
+      if (em) em.textContent = String(value);
+      if (fill) fill.style.width = value + "%";
+      li.setAttribute("aria-label", SCORE_CATS.filter(function (c) { return c.id === id; })[0].label + " " + value);
+    });
+  }
+
+  function renderResultBadges(badges) {
+    if (!dom.resultBadges) return;
+    dom.resultBadges.innerHTML = "";
+    if (!badges.length) {
+      dom.resultBadges.hidden = true;
+      return;
+    }
+    dom.resultBadges.hidden = false;
+    badges.forEach(function (badge) {
+      const li = document.createElement("li");
+      li.className = "result-badge badge-" + badge.id;
+      li.textContent = badge.label;
+      dom.resultBadges.appendChild(li);
+    });
   }
 
   function hideResult() {
     window.cancelAnimationFrame(gameState.timers.scoreRaf);
     gameState.timers.scoreRaf = 0;
     setOverlayOpen(dom.resultOverlay, false);
-    if (dom.resultSheet) dom.resultSheet.classList.remove("perfect");
+    if (dom.resultSheet) dom.resultSheet.className = "result-sheet";
   }
 
-  function countUp(target) {
+  function countUpBreakdown(breakdown) {
     const start = performance.now();
-    const duration = 700;
+    const duration = 900;
+    renderScoreCats(breakdown.categories, true);
 
     function frame(now) {
       const t = clamp((now - start) / duration, 0, 1);
       const eased = 1 - Math.pow(1 - t, 3);
-      const value = Math.round(target * eased);
+      const value = Math.round(breakdown.total * eased);
       if (dom.resultOverlay && dom.resultOverlay.classList.contains("is-open")) {
         dom.resultScore.textContent = String(value);
         dom.scoreRing.style.setProperty("--p", value + "%");
+        Array.prototype.forEach.call(dom.scoreCats.children, function (li) {
+          const id = li.dataset.cat;
+          const catVal = Math.round((breakdown.categories[id] || 0) * eased);
+          const em = li.querySelector("em");
+          const fill = li.querySelector("i");
+          if (em) em.textContent = String(catVal);
+          if (fill) fill.style.width = catVal + "%";
+        });
       }
       if (t < 1) {
         gameState.timers.scoreRaf = window.requestAnimationFrame(frame);
@@ -2195,21 +2501,24 @@
     if (dom.finishShipped) dom.finishShipped.classList.add("is-on");
     playSound("shipped");
     haptic(22);
-    const pending = gameState.pendingResult;
+    const finishSnap = snapshotFinish(finish);
+    const breakdown = calculateScoreBreakdown(finishSnap);
     window.setTimeout(function () {
-      if (!pending) return;
-      gameState.money += pending.money;
-      gameState.xp += pending.xp;
-      if (pending.perfect || pending.spaceMaster) spawnConfetti();
+      if (!gameState.pendingResult) return;
+      gameState.money += breakdown.money;
+      gameState.xp += breakdown.xp;
+      if (breakdown.perfect) {
+        spawnConfetti();
+        haptic(32);
+        window.setTimeout(function () {
+          haptic(18);
+        }, 160);
+        window.setTimeout(function () {
+          haptic(12);
+        }, 340);
+      }
       hideFinishSequence();
-      showResult(
-        pending.score,
-        pending.money,
-        pending.xp,
-        pending.perfect,
-        pending.spaceMaster,
-        pending.protection
-      );
+      showResult(breakdown);
       renderOrder();
       gameState.pendingResult = null;
     }, 1300);

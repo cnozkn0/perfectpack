@@ -13,7 +13,7 @@ Open `index.html` in a browser — no build step, no backend, no extra assets.
 5. Fit every required item. Extra items cannot be added.
 6. When the layout is valid, **PACK ORDER** lights up.
 7. Run the packing finish sequence (tissue, card, flaps, sticker, tape, label, scan).
-8. **SHIPPED ✓**, then the score sheet. Score 90+ for a **PERFECT PACK** bonus, then tap **NEXT ORDER**.
+8. **SHIPPED ✓**, then the score sheet. Pack Score is a weighted mix of Accuracy (25%), Fit (20%), Protection (20%), Cost (15%), and Aesthetic (20%). **98+** is a **PERFECT PACK ✨** (confetti + haptic). Badges: SPACE MASTER, PROTECTOR, BUDGET MASTER, STYLIST, FLAWLESS.
 
 There are 18 preset orders that get a little tighter as you go. Money and XP carry across the session.
 

@@ -155,13 +155,8 @@
             <strong id="result-score">0</strong>
             <span>Pack Score</span>
           </div>
-          <div class="protection-result">
-            <div class="protection-meter">
-              <span>PROTECTION</span>
-              <strong id="result-protection">0%</strong>
-            </div>
-            <ul class="protection-risks" id="result-risks"></ul>
-          </div>
+          <ul class="score-cats" id="score-cats" aria-label="Category scores"></ul>
+          <ul class="result-badges" id="result-badges" hidden></ul>
           <ul class="rewards">
             <li>
               <span>Coins</span>
@@ -174,10 +169,6 @@
             <li id="result-bonus" class="bonus hidden" hidden>
               <span>Perfect bonus</span>
               <strong>+$50 · +20 XP</strong>
-            </li>
-            <li id="result-space" class="bonus space-master hidden" hidden>
-              <span>SPACE MASTER</span>
-              <strong>+$30 · +15 XP</strong>
             </li>
           </ul>
           <button id="next-btn" class="pack-btn next-btn" type="button">NEXT ORDER</button>
