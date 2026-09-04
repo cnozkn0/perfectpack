@@ -898,6 +898,7 @@
 
   function applyWrap(product, materialId) {
     if (gameState.packing) return;
+    if (!product || !product.inBox) return;
     if (!PROTECTION_MATERIALS[materialId]) return;
     if ((product.wraps || []).length >= CONFIG.MAX_WRAPS) {
       playSound("error");
@@ -1730,7 +1731,7 @@
   function renderWrapTray() {
     if (!dom.wrapTray) return;
     const product = getSelectedProduct();
-    if (!product) {
+    if (!product || !product.inBox) {
       dom.wrapTray.hidden = true;
       dom.wrapTray.classList.add("hidden");
       return;

@@ -880,7 +880,8 @@ ul {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 62px;
+  bottom: 100%;
+  margin-bottom: 8px;
   z-index: 8;
   background: var(--paper);
   border-radius: 16px;
