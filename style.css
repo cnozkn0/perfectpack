@@ -112,7 +112,7 @@ ul {
 /* ——— HUD (compact, not a website navbar) ——— */
 .hud {
   position: relative;
-  z-index: 85;
+  z-index: 210;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1032,22 +1032,26 @@ ul {
 }
 
 .finish-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 70;
+  z-index: 200;
   background:
     radial-gradient(120% 50% at 50% 0%, #fff6ea 0%, transparent 50%),
     linear-gradient(180deg, #f3e4d2 0%, #e7d0b8 100%);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
-  padding: calc(58px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
+  padding: calc(52px + var(--safe-top)) 14px calc(12px + var(--safe-bottom));
   touch-action: none;
   user-select: none;
 }
 
+.finish-overlay.is-open {
+  display: flex !important;
+}
+
 .finish-overlay.hidden {
-  display: none;
+  display: none !important;
 }
 
 .finish-stage {
@@ -1055,10 +1059,51 @@ ul {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .finish-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+}
+
+.finish-rail {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  max-width: 100%;
+  margin: 2px 0 4px;
+}
+
+.finish-rail li {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: rgba(255, 248, 239, 0.55);
+  border-radius: 999px;
+  padding: 4px 7px;
+  opacity: 0.45;
+}
+
+.finish-rail li.is-done {
+  opacity: 0.85;
+  background: rgba(109, 154, 124, 0.28);
+  color: #3f6a4d;
+}
+
+.finish-rail li.is-current {
+  opacity: 1;
+  background: var(--terracotta);
+  color: #fff8ef;
+}
+
+.finish-count {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.16em;
@@ -1150,10 +1195,33 @@ ul {
       rgba(232, 196, 170, 0.45) 8px 16px
     ),
     #f7efe4;
-  transform: translateY(-92%);
+  transform: translateY(-68%);
   transform-origin: top center;
   z-index: 2;
   box-shadow: 0 8px 16px rgba(90, 50, 20, 0.12);
+}
+
+.finish-swipe-cue {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 36%;
+  z-index: 9;
+  width: 44px;
+  height: 44px;
+  margin-left: -22px;
+  border-radius: 50%;
+  background: rgba(74, 52, 40, 0.78);
+  color: #fff8ef;
+  font-size: 22px;
+  font-weight: 800;
+  place-items: center;
+  pointer-events: none;
+  animation: swipeBounce 1s ease-in-out infinite;
+}
+
+.finish-overlay[data-step="tissue"] .finish-swipe-cue {
+  display: grid;
 }
 
 .finish-tissue.is-tucked {
@@ -1462,6 +1530,18 @@ ul {
   box-shadow: 0 0 0 3px rgba(109, 154, 124, 0.55), var(--shadow-sm);
 }
 
+@keyframes swipeBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.95;
+  }
+  50% {
+    transform: translateY(10px);
+    opacity: 1;
+  }
+}
+
 @keyframes stampIn {
   from {
     transform: scale(1.18) rotate(-12deg);
@@ -1510,7 +1590,7 @@ ul {
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 300;
   background: rgba(42, 33, 27, 0.38);
   display: flex;
   align-items: flex-end;

@@ -305,11 +305,14 @@
     dom.unwrapBtn = $("unwrap-btn");
     dom.packBtn = $("pack-btn");
     dom.finishOverlay = $("finish-overlay");
+    dom.finishKicker = $("finish-kicker");
+    dom.finishRail = $("finish-rail");
     dom.finishStep = $("finish-step");
     dom.finishTitle = $("finish-title");
     dom.finishHint = $("finish-hint");
     dom.finishBox = $("finish-box");
     dom.finishBoxTag = $("finish-box-tag");
+    dom.finishSwipeCue = $("finish-swipe-cue");
     dom.finishTissue = $("finish-tissue");
     dom.finishCard = $("finish-card");
     dom.finishCardSlot = $("finish-card-slot");
@@ -1904,27 +1907,35 @@
   }
 
   function startFinishSequence() {
+    const overlay = dom.finishOverlay || $("finish-overlay");
+    if (!overlay) return;
+    dom.finishOverlay = overlay;
     gameState.finish = emptyFinishState();
     gameState.finish.active = true;
     resetFinishVisuals();
     if (dom.finishBoxTag) {
       dom.finishBoxTag.textContent = getSelectedBox().key;
     }
-    if (dom.finishOverlay) {
-      dom.finishOverlay.hidden = false;
-      dom.finishOverlay.classList.remove("hidden");
-    }
+    overlay.removeAttribute("hidden");
+    overlay.classList.remove("hidden");
+    overlay.classList.add("is-open");
+    overlay.setAttribute("aria-hidden", "false");
+    if (dom.app) dom.app.classList.add("is-finishing");
     showFinishStep(0);
     playSound("complete");
     haptic(10);
   }
 
   function hideFinishSequence() {
-    if (dom.finishOverlay) {
-      dom.finishOverlay.hidden = true;
-      dom.finishOverlay.classList.add("hidden");
-      delete dom.finishOverlay.dataset.step;
+    const overlay = dom.finishOverlay;
+    if (overlay) {
+      overlay.hidden = true;
+      overlay.classList.add("hidden");
+      overlay.classList.remove("is-open");
+      overlay.setAttribute("aria-hidden", "true");
+      delete overlay.dataset.step;
     }
+    if (dom.app) dom.app.classList.remove("is-finishing");
     gameState.finish = emptyFinishState();
     resetFinishVisuals();
   }
@@ -1964,18 +1975,47 @@
     finish.gesture = null;
     const step = FINISH_STEPS[index];
     const id = step.id;
-    dom.finishOverlay.dataset.step = id;
-    dom.finishStep.textContent = String(index + 1).padStart(2, "0") + " / " + FINISH_STEPS.length;
-    dom.finishTitle.textContent = id === "shipped" ? "SHIPPED ✓" : step.title;
-    dom.finishHint.textContent = step.hint;
+    if (dom.finishOverlay) {
+      dom.finishOverlay.dataset.step = id;
+      dom.finishOverlay.classList.add("is-open");
+      dom.finishOverlay.classList.remove("hidden");
+      dom.finishOverlay.removeAttribute("hidden");
+    }
+    if (dom.finishStep) {
+      dom.finishStep.textContent = String(index + 1).padStart(2, "0") + " / " + FINISH_STEPS.length;
+    }
+    if (dom.finishTitle) {
+      dom.finishTitle.textContent = id === "shipped" ? "SHIPPED ✓" : step.title;
+    }
+    if (dom.finishHint) dom.finishHint.textContent = step.hint;
+    if (dom.finishRail) {
+      Array.prototype.forEach.call(dom.finishRail.querySelectorAll("[data-finish]"), function (el) {
+        const key = el.getAttribute("data-finish");
+        const stepIndex = FINISH_STEPS.findIndex(function (s) {
+          return s.id === key;
+        });
+        el.classList.toggle("is-current", stepIndex === index);
+        el.classList.toggle("is-done", stepIndex >= 0 && stepIndex < index);
+      });
+    }
 
-    dom.finishCard.classList.toggle("is-hidden", id !== "card" || finish.cardPlaced);
-    dom.finishSticker.classList.toggle("is-hidden", id !== "sticker" || finish.stickerPlaced);
-    dom.finishLabel.classList.toggle("is-hidden", id !== "label" || finish.labelPlaced);
-    dom.finishScanner.classList.toggle("is-hidden", id !== "scan" || finish.scanned);
-    dom.finishBox.classList.toggle("is-closing", id === "close" || index > 2);
-    dom.finishBox.classList.toggle("is-scan", id === "scan" || index >= 6);
-    if (index > 0) {
+    if (dom.finishCard) {
+      dom.finishCard.classList.toggle("is-hidden", id !== "card" || finish.cardPlaced);
+    }
+    if (dom.finishSticker) {
+      dom.finishSticker.classList.toggle("is-hidden", id !== "sticker" || finish.stickerPlaced);
+    }
+    if (dom.finishLabel) {
+      dom.finishLabel.classList.toggle("is-hidden", id !== "label" || finish.labelPlaced);
+    }
+    if (dom.finishScanner) {
+      dom.finishScanner.classList.toggle("is-hidden", id !== "scan" || finish.scanned);
+    }
+    if (dom.finishBox) {
+      dom.finishBox.classList.toggle("is-closing", id === "close" || index > 2);
+      dom.finishBox.classList.toggle("is-scan", id === "scan" || index >= 6);
+    }
+    if (index > 0 && dom.finishTissue) {
       dom.finishTissue.classList.add("is-tucked");
       dom.finishTissue.style.transform = "translateY(0)";
     }
@@ -2143,9 +2183,9 @@
 
     if (g.type === "tissue") {
       const delta = event.clientY - g.startY;
-      const progress = clamp(g.progress + delta / 140, 0, 1);
+      const progress = clamp(g.progress + delta / 110, 0, 1);
       finish.tissue = progress;
-      dom.finishTissue.style.transform = "translateY(" + (-92 + progress * 92) + "%)";
+      dom.finishTissue.style.transform = "translateY(" + (-68 + progress * 68) + "%)";
       return;
     }
 
@@ -2193,7 +2233,7 @@
     const id = finishStepId();
 
     if (g.type === "tissue") {
-      if (finish.tissue >= 0.62) {
+      if (finish.tissue >= 0.48) {
         dom.finishTissue.classList.add("is-tucked");
         dom.finishTissue.style.transform = "translateY(0)";
         succeedFinish("tissue");

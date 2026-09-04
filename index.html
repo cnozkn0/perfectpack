@@ -89,18 +89,31 @@
           PACK ORDER
         </button>
       </section>
-    </div>
 
-    <div id="drag-layer" class="drag-layer" aria-hidden="true"></div>
-    <div id="confetti" class="confetti" aria-hidden="true"></div>
+      <div
+        id="finish-overlay"
+        class="finish-overlay"
+        hidden
+        aria-hidden="true"
+      >
+        <div class="finish-stage">
+          <p class="finish-kicker" id="finish-kicker">Seal the box</p>
+          <ol class="finish-rail" id="finish-rail" aria-label="Packing finish steps">
+            <li data-finish="tissue">Tissue</li>
+            <li data-finish="card">Card</li>
+            <li data-finish="close">Close</li>
+            <li data-finish="sticker">Sticker</li>
+            <li data-finish="tape">Tape</li>
+            <li data-finish="label">Label</li>
+            <li data-finish="scan">Scan</li>
+            <li data-finish="shipped">Ship</li>
+          </ol>
+          <p class="finish-count" id="finish-step">01 / 08</p>
+          <h2 id="finish-title">Tissue Paper</h2>
+          <p class="finish-hint" id="finish-hint">Swipe down to tuck the tissue</p>
 
-    <div id="finish-overlay" class="finish-overlay hidden" hidden>
-      <div class="finish-stage">
-        <p class="finish-kicker" id="finish-step">1 / 8</p>
-        <h2 id="finish-title">Tissue Paper</h2>
-        <p class="finish-hint" id="finish-hint">Swipe down to tuck the tissue</p>
-
-        <div class="finish-box" id="finish-box">
+          <div class="finish-box" id="finish-box">
+            <span class="finish-swipe-cue" id="finish-swipe-cue" aria-hidden="true">↓</span>
           <div class="finish-flap finish-flap-l" id="finish-flap-l"></div>
           <div class="finish-flap finish-flap-r" id="finish-flap-r"></div>
           <div class="finish-lid" id="finish-lid">
@@ -138,6 +151,10 @@
         </div>
       </div>
     </div>
+    </div>
+
+    <div id="drag-layer" class="drag-layer" aria-hidden="true"></div>
+    <div id="confetti" class="confetti" aria-hidden="true"></div>
 
     <div id="result-overlay" class="overlay hidden" hidden>
       <div class="result-sheet" role="dialog" aria-labelledby="result-title" aria-modal="true">
