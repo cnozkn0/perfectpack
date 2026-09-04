@@ -372,7 +372,7 @@ ul {
   width: var(--pack-w);
   height: var(--pack-h);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   touch-action: none;
   border-radius: 4px;
   transition: width 0.2s ease, height 0.2s ease;
@@ -721,10 +721,10 @@ ul {
 
 .rotate-btn {
   position: absolute;
-  right: -8px;
-  bottom: -8px;
-  width: 26px;
-  height: 26px;
+  right: 2px;
+  bottom: 2px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--paper);
   box-shadow: var(--shadow-sm);
@@ -737,8 +737,8 @@ ul {
 
 .compress-btn {
   position: absolute;
-  left: -8px;
-  bottom: -8px;
+  left: 2px;
+  bottom: 2px;
   min-width: 26px;
   height: 22px;
   padding: 0 6px;
@@ -755,6 +755,7 @@ ul {
 }
 
 .product.in-box .rotate-btn,
+.product.is-selected .rotate-btn,
 .product.is-compressible .compress-btn {
   display: grid;
 }

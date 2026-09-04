@@ -7,8 +7,8 @@ Open `index.html` in a browser — no build step, no backend, no extra assets.
 ## How to play
 
 1. Read the order card at the top.
-2. Drag items from the shelf into the box (mouse or touch).
-3. Tap an item, or press **↻**, to rotate it 90°.
+2. Drag items from the shelf into the box, or tap an item twice to auto-place it (mouse or touch).
+3. Tap a packed item again, or press **↻**, to rotate. Candles and perfume stay upright (0° / 180°).
 4. Fit every required item. Extra items cannot be added.
 5. When the layout is valid, **PACK ORDER** lights up.
 6. Run the packing finish sequence (tissue, card, flaps, sticker, tape, label, scan).

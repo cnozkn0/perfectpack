@@ -75,7 +75,7 @@
       </section>
 
       <section class="dock">
-        <p class="shelf-hint" id="shelf-hint">Drag into the box · Tap to rotate</p>
+        <p class="shelf-hint" id="shelf-hint">Drag or tap twice to pack</p>
         <div class="shelf" id="shelf" aria-label="Product shelf"></div>
         <div id="wrap-tray" class="wrap-tray hidden" hidden>
           <div class="wrap-tray-head">
@@ -90,7 +90,7 @@
         </button>
       </section>
 
-      <div id="finish-overlay" class="finish-overlay" aria-hidden="true">
+      <div id="finish-overlay" class="finish-overlay" data-step="tissue" aria-hidden="true">
         <div class="finish-stage">
           <p class="finish-kicker" id="finish-kicker">Seal the box</p>
           <div class="finish-rail" id="finish-rail" aria-label="Packing finish steps">
@@ -130,17 +130,17 @@
           </div>
 
           <div class="finish-props" id="finish-props">
-            <div class="finish-prop finish-card" id="finish-card" aria-label="Thank you card">
+            <div class="finish-prop finish-card is-hidden" id="finish-card" aria-label="Thank you card">
               <span>Thank you</span>
             </div>
-            <div class="finish-prop finish-sticker" id="finish-sticker" aria-label="Shop sticker">
+            <div class="finish-prop finish-sticker is-hidden" id="finish-sticker" aria-label="Shop sticker">
               <span>PP</span>
             </div>
-            <div class="finish-prop finish-label" id="finish-label" aria-label="Shipping label">
+            <div class="finish-prop finish-label is-hidden" id="finish-label" aria-label="Shipping label">
               <span>SHIP TO</span>
               <em>Cozy Shop</em>
             </div>
-            <div class="finish-prop finish-scanner" id="finish-scanner" aria-label="Barcode scanner">
+            <div class="finish-prop finish-scanner is-hidden" id="finish-scanner" aria-label="Barcode scanner">
               <span>SCAN</span>
             </div>
           </div>

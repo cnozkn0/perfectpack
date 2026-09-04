@@ -817,7 +817,21 @@
   }
 
   function isUpright(product) {
-    return product.rotation % 360 === 0;
+    const rot = ((product.rotation % 360) + 360) % 360;
+    return rot % 180 === 0;
+  }
+
+  function snapUprightPose(product) {
+    if (!getType(product.typeId).uprightOnly) return;
+    if (!isUpright(product)) product.rotation = 0;
+  }
+
+  function nextRotation(product) {
+    if (getType(product.typeId).uprightOnly) {
+      const rot = ((product.rotation % 360) + 360) % 360;
+      return rot === 0 ? 180 : 0;
+    }
+    return (product.rotation + 90) % 360;
   }
 
   function syncWrapLayers(product) {
@@ -942,7 +956,7 @@
     const prevX = product.x;
     const prevY = product.y;
     const aabb = getAABB(product);
-    product.rotation = (product.rotation + 90) % 360;
+    product.rotation = nextRotation(product);
 
     if (product.inBox) {
       const next = getAABB(product);
@@ -1014,7 +1028,97 @@
     updatePackButton();
   }
 
+  function findFreeSlot(product, preferredX, preferredY) {
+    snapUprightPose(product);
+    const box = getBoxSize();
+    const size = getAABB(product);
+    const maxX = box.width - size.w;
+    const maxY = box.height - size.h;
+    if (maxX < 0 || maxY < 0) return null;
+
+    const step = Math.max(CONFIG.SNAP_GRID * 4, 8);
+    const seen = {};
+    const tries = [];
+
+    function add(x, y) {
+      const sx = snapValue(clamp(x, 0, maxX));
+      const sy = snapValue(clamp(y, 0, maxY));
+      const key = sx + "," + sy;
+      if (seen[key]) return;
+      seen[key] = true;
+      tries.push({ x: sx, y: sy });
+    }
+
+    if (preferredX != null && preferredY != null) add(preferredX, preferredY);
+    add(8, 8);
+    add(maxX, 8);
+    add(8, maxY);
+    add(maxX / 2, 8);
+    add(8, maxY / 2);
+    add(maxX / 2, maxY / 2);
+
+    for (let y = 0; y <= maxY; y += step) {
+      for (let x = 0; x <= maxX; x += step) {
+        add(x, y);
+      }
+    }
+    add(maxX, maxY);
+
+    for (let i = 0; i < tries.length; i += 1) {
+      const t = tries[i];
+      const candidate = clonePose(product, { x: t.x, y: t.y, inBox: true });
+      if (isInsideBox(candidate) && !isOverlapping(candidate)) return t;
+    }
+    return null;
+  }
+
+  function autoPlaceProduct(product) {
+    if (gameState.packing || !product) return false;
+    snapUprightPose(product);
+    applyProductMetrics(product);
+    const hintX = product.inBox ? product.x : 8;
+    const hintY = product.inBox ? product.y : 8;
+    const slot = findFreeSlot(product, hintX, hintY);
+    if (!slot) {
+      playSound("error");
+      haptic(12);
+      if (product.el) {
+        product.el.classList.add("is-invalid");
+        window.setTimeout(function () {
+          if (product.el) product.el.classList.remove("is-invalid");
+        }, 320);
+      }
+      return false;
+    }
+    placeInBox(product, slot.x, slot.y);
+    playSound("place");
+    haptic(8);
+    playSnapAnimation(product.el);
+    selectProduct(product);
+    updatePackButton();
+    return true;
+  }
+
+  function handleProductTap(product) {
+    if (gameState.packing) return;
+    const already = gameState.selectedProductId === product.id;
+    if (!product.inBox) {
+      if (already) {
+        autoPlaceProduct(product);
+      } else {
+        selectProduct(product);
+      }
+      return;
+    }
+    if (already) {
+      rotateProduct(product);
+    } else {
+      selectProduct(product);
+    }
+  }
+
   function placeInBox(product, x, y) {
+    snapUprightPose(product);
     product.inBox = true;
     product.x = x;
     product.y = y;
@@ -1180,9 +1284,12 @@
     if (!drag.moved) {
       clearDragVisuals();
       gameState.drag = null;
-      selectProduct(product);
+      handleProductTap(product);
       return;
     }
+
+    snapUprightPose(product);
+    applyProductMetrics(product);
 
     const overShelf = isPointInElement(event.clientX, event.clientY, dom.shelf);
     if (overShelf) {
@@ -1192,9 +1299,12 @@
       return;
     }
 
+    const overBox =
+      isPointInElement(event.clientX, event.clientY, dom.packArea) ||
+      isPointInElement(event.clientX, event.clientY, dom.box);
     const local = clientRectToBoxLocal(el);
-    const snappedX = snapValue(local.x);
-    const snappedY = snapValue(local.y);
+    let snappedX = snapValue(local.x);
+    let snappedY = snapValue(local.y);
     const candidate = clonePose(product, {
       x: snappedX,
       y: snappedY,
@@ -1202,8 +1312,13 @@
     });
 
     if (!isInsideBox(candidate) || isOverlapping(candidate)) {
-      rejectPlacement(product, el);
-      return;
+      const slot = overBox || drag.fromBox ? findFreeSlot(product, snappedX, snappedY) : null;
+      if (!slot) {
+        rejectPlacement(product, el);
+        return;
+      }
+      snappedX = slot.x;
+      snappedY = slot.y;
     }
 
     placeInBox(product, snappedX, snappedY);
@@ -1686,7 +1801,7 @@
       if (report && report.blockers.indexOf("upright") !== -1) {
         dom.shelfHint.textContent = "Stand upright items up · Tap to rotate";
       } else {
-        dom.shelfHint.textContent = "Tap to wrap · ↻ to rotate";
+        dom.shelfHint.textContent = "Tap to wrap · tap again to rotate";
       }
       if (!dom.shelf.querySelector(".product") && !dom.shelf.querySelector(".shelf-empty")) {
         const empty = document.createElement("p");
@@ -1695,7 +1810,7 @@
         dom.shelf.appendChild(empty);
       }
     } else {
-      dom.shelfHint.textContent = "Drag into the box · Tap to wrap";
+      dom.shelfHint.textContent = "Drag or tap twice to pack";
       const empty = dom.shelf.querySelector(".shelf-empty");
       if (empty) empty.remove();
     }
@@ -1833,7 +1948,13 @@
     }
     if (dom.packArea) {
       dom.packArea.addEventListener("pointerdown", function (event) {
-        if (event.target === dom.packArea) clearSelection();
+        if (event.target !== dom.packArea) return;
+        const selected = getSelectedProduct();
+        if (selected && !selected.inBox && !gameState.packing) {
+          autoPlaceProduct(selected);
+          return;
+        }
+        clearSelection();
       });
     }
     bindFinishUi();
