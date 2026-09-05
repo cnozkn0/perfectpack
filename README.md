@@ -42,10 +42,10 @@ After **PACK ORDER** you seal the box by hand — swipe tissue, drop a thank-you
 Double-click `index.html`, or from this folder:
 
 ```bash
-python3 -m http.server 47821
+python3 serve.py
 ```
 
-Then open `http://127.0.0.1:47821`.
+Then open `http://127.0.0.1:47821`. On your own Mac/iPhone Safari that address only works if this command is running **on that device**. The Cursor Preview button opens the cloud copy.
 
 Best on a phone in portrait, or a desktop window around **390×844**.
 
