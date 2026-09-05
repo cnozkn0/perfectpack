@@ -38,7 +38,7 @@
       aesthetic: 0.2,
     },
     SPACE_MASTER_FIT: 90,
-    SOUND_STORAGE_KEY: "perfect-pack-sound",
+    SOUND_STORAGE_KEY: "perfect-pack-audio",
     COMPRESS_FACTOR: 0.72,
     SOFT_PROTECT_GAP: 8,
     SOFT_PROTECT_BONUS: 1,
@@ -1202,6 +1202,7 @@
 
   function enterPacking() {
     if (gameState.packing) return;
+    unlockAudio();
     setStage("packing");
     playSound("place");
     haptic(8);
@@ -1577,16 +1578,26 @@
       return true;
     }
     const next = getAABB(product);
+    const box = getBoxSize();
+    const maxX = box.width - next.w;
+    const maxY = box.height - next.h;
+    if (maxX < 0 || maxY < 0) return false;
+
     const cx = product.x + previousAABB.w / 2;
     const cy = product.y + previousAABB.h / 2;
-    const nextX = snapValue(cx - next.w / 2);
-    const nextY = snapValue(cy - next.h / 2);
+    const nextX = snapValue(clamp(cx - next.w / 2, 0, maxX));
+    const nextY = snapValue(clamp(cy - next.h / 2, 0, maxY));
     const candidate = clonePose(product, { x: nextX, y: nextY, inBox: true });
-    if (!isInsideBox(candidate) || isOverlapping(candidate)) {
-      return false;
+    if (isInsideBox(candidate) && !isOverlapping(candidate)) {
+      product.x = nextX;
+      product.y = nextY;
+      applyProductMetrics(product);
+      return true;
     }
-    product.x = nextX;
-    product.y = nextY;
+    const slot = findFreeSlot(product, nextX, nextY);
+    if (!slot) return false;
+    product.x = slot.x;
+    product.y = slot.y;
     applyProductMetrics(product);
     return true;
   }
@@ -1613,6 +1624,7 @@
       product.el.classList.add("is-invalid");
       playSound("error");
       haptic(12);
+      showRequestToast("No room to wrap — nudge items or pick a bigger box");
       window.setTimeout(function () {
         product.el.classList.remove("is-invalid");
       }, 320);
@@ -2987,6 +2999,7 @@
       btn.type = "button";
       btn.className = "wrap-target" + (selected.id === p.id ? " is-on" : "");
       btn.setAttribute("data-product", String(p.id));
+      btn.setAttribute("aria-pressed", selected.id === p.id ? "true" : "false");
       btn.innerHTML =
         '<span aria-hidden="true">' + type.icon + "</span><span>" + type.name + "</span>";
       dom.wrapTargets.appendChild(btn);
@@ -3291,17 +3304,32 @@
     dom.packBtn.addEventListener("click", completeOrder);
     dom.nextBtn.addEventListener("click", nextOrder);
     if (dom.wrapOptions) {
-      dom.wrapOptions.addEventListener("click", function (event) {
+      dom.wrapOptions.addEventListener("pointerup", function (event) {
         const btn = event.target.closest("[data-wrap]");
-        const product = getSelectedProduct();
-        if (!btn || !product) return;
+        if (!btn) return;
+        event.preventDefault();
+        event.stopPropagation();
+        let product = getSelectedProduct();
+        if (!product || !product.inBox) {
+          const packed = gameState.products.filter(function (p) {
+            return p.inBox;
+          });
+          product = packed.length === 1 ? packed[0] : null;
+        }
+        if (!product || !product.inBox) {
+          showRequestToast("Tap an item in the box, then wrap it");
+          return;
+        }
+        selectProduct(product);
         applyWrap(product, btn.getAttribute("data-wrap"));
       });
     }
     if (dom.wrapTargets) {
-      dom.wrapTargets.addEventListener("click", function (event) {
+      dom.wrapTargets.addEventListener("pointerup", function (event) {
         const btn = event.target.closest("[data-product]");
         if (!btn) return;
+        event.preventDefault();
+        event.stopPropagation();
         const id = parseInt(btn.getAttribute("data-product"), 10);
         const product = gameState.products.filter(function (p) {
           return p.id === id;
@@ -3335,6 +3363,13 @@
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", scheduleFitBox);
     }
+
+    document.addEventListener("pointerdown", function () {
+      unlockAudio();
+    }, true);
+    document.addEventListener("keydown", function () {
+      unlockAudio();
+    }, true);
 
     document.addEventListener("pointermove", moveProduct, { passive: false });
     document.addEventListener("pointerup", dropProduct);
@@ -3979,6 +4014,7 @@
   // and call sites stay the same.
   // ===========================================================================
   let audioCtx = null;
+  let audioUnlocking = false;
   const audioBuffers = Object.create(null);
 
   const SOUND_BANK = {
@@ -4008,9 +4044,40 @@
     return audioCtx;
   }
 
-  function resumeAudio() {
+  function blipUnlock(ctx) {
+    if (!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.02);
+    } catch (err) {
+      /* some browsers reject start() while still suspended */
+    }
+  }
+
+  function unlockAudio() {
     const ctx = getAudioContext();
-    if (ctx && ctx.state === "suspended") ctx.resume().catch(function () {});
+    if (!ctx) return;
+    blipUnlock(ctx);
+    if (ctx.state === "suspended" || ctx.state === "interrupted") {
+      if (audioUnlocking) return;
+      audioUnlocking = true;
+      ctx
+        .resume()
+        .catch(function () {})
+        .then(function () {
+          audioUnlocking = false;
+          blipUnlock(ctx);
+        });
+    }
+  }
+
+  function resumeAudio() {
+    unlockAudio();
   }
 
   function playSound(kind) {
@@ -4019,12 +4086,20 @@
     if (!entry) return;
     const ctx = getAudioContext();
     if (!ctx) return;
-    resumeAudio();
-    if (entry.src) {
-      playFileSound(ctx, kind, entry.src, entry.synth);
+    const run = function () {
+      if (!gameState.soundEnabled) return;
+      if (ctx.state === "suspended" || ctx.state === "interrupted") return;
+      if (entry.src) {
+        playFileSound(ctx, kind, entry.src, entry.synth);
+        return;
+      }
+      playSynth(ctx, entry.synth || kind);
+    };
+    if (ctx.state === "suspended" || ctx.state === "interrupted") {
+      ctx.resume().then(run).catch(function () {});
       return;
     }
-    playSynth(ctx, entry.synth || kind);
+    run();
   }
 
   function playFileSound(ctx, kind, src, fallback) {
@@ -4070,7 +4145,7 @@
         osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), start + dur);
       }
       gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(peak, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(Math.min(0.35, peak * 2.6), start + 0.012);
       gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
       osc.connect(gain);
       gain.connect(ctx.destination);
@@ -4092,7 +4167,7 @@
       filter.Q.value = 0.75;
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(peak, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(Math.min(0.28, peak * 2.4), start + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
       src.connect(filter);
       filter.connect(gain);
@@ -4177,6 +4252,7 @@
   }
 
   function toggleSound() {
+    unlockAudio();
     gameState.soundEnabled = !gameState.soundEnabled;
     try {
       window.localStorage.setItem(CONFIG.SOUND_STORAGE_KEY, gameState.soundEnabled ? "1" : "0");

@@ -1168,9 +1168,13 @@ ul {
   gap: 6px;
 }
 
+.wrap-targets[hidden] {
+  display: none !important;
+}
+
 .wrap-target {
-  min-height: 32px;
-  padding: 0 10px;
+  min-height: 36px;
+  padding: 0 12px;
   border-radius: 999px;
   background: #f6ebdd;
   font-size: 12px;
@@ -1228,6 +1232,7 @@ ul {
   justify-content: center;
   gap: 1px;
   border: 2px solid transparent;
+  touch-action: manipulation;
 }
 
 .wrap-choice.is-on {
