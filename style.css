@@ -2777,3 +2777,398 @@ ul {
     min-height: 48px;
   }
 }
+
+
+/* ——— Cosmetics / Style Shop ——— */
+.shop-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 4px;
+  border-radius: 14px;
+  background: #f3e6d6;
+}
+
+.shop-tab {
+  min-height: 36px;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+  background: transparent;
+}
+
+.shop-tab.is-on {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.shop-panel[hidden] {
+  display: none !important;
+}
+
+.shop-panel.is-on {
+  display: block;
+}
+
+.shop-sheet.is-style,
+.shop-overlay.is-style .shop-sheet {
+  /* keep portrait scroll comfortable on Style tab */
+}
+
+.style-list {
+  max-height: none;
+}
+
+.style-filters {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 0 10px;
+  margin-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.style-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.style-filter {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #f3e6d6;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.style-filter.is-on {
+  background: var(--terracotta);
+  color: #fff8ef;
+}
+
+.style-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.style-card {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  background: #fffaf3;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+.style-preview {
+  width: 64px;
+  height: 52px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(74, 52, 40, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.style-card-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.style-card-cat {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.style-card-name {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.style-card-status {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sage);
+}
+
+.style-card.is-locked .style-card-status {
+  color: var(--ink-soft);
+}
+
+.style-card.is-equipped {
+  box-shadow: var(--shadow-sm), inset 0 0 0 2px rgba(109, 154, 124, 0.45);
+}
+
+.style-action {
+  margin-top: 6px;
+  align-self: start;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #e08162 0%, var(--terracotta) 100%);
+  color: #fff8ef;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  box-shadow: 0 4px 0 var(--terracotta-deep);
+}
+
+.style-action:not(:disabled):active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--terracotta-deep);
+}
+
+.style-action.is-equipped,
+.style-action.is-locked,
+.style-action:disabled {
+  background: #ead9c6;
+  color: var(--ink-soft);
+  box-shadow: none;
+}
+
+/* Style card previews */
+.preview-box-kraft { background: linear-gradient(180deg, #e4c49a, #c9956a); }
+.preview-box-white { background: linear-gradient(180deg, #f7f4ef, #e4ddd2); }
+.preview-box-soft-pink { background: linear-gradient(180deg, #f6d5d0, #e8b4ad); }
+.preview-box-black { background: linear-gradient(180deg, #3a342f, #1c1815); }
+
+.preview-tissue-plain { background: repeating-linear-gradient(28deg, rgba(255,248,239,.35) 0 6px, rgba(232,196,170,.4) 6px 12px), #f7efe4; }
+.preview-tissue-hearts {
+  background:
+    radial-gradient(circle at 30% 40%, #e87a8a 0 3px, transparent 4px),
+    radial-gradient(circle at 70% 55%, #e87a8a 0 2.5px, transparent 3.5px),
+    #f8ece8;
+}
+.preview-tissue-stars {
+  background:
+    radial-gradient(circle at 28% 35%, #e2b15a 0 2px, transparent 3px),
+    radial-gradient(circle at 68% 60%, #e2b15a 0 2px, transparent 3px),
+    #f4efe4;
+}
+.preview-tissue-lines {
+  background: repeating-linear-gradient(0deg, transparent 0 7px, rgba(90,60,40,.14) 7px 8px), #f7f2ea;
+}
+
+.preview-sticker-default,
+.preview-sticker-thanks,
+.preview-sticker-heart,
+.preview-sticker-smile {
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.preview-sticker-default { background: #d46a4c; }
+.preview-sticker-default::after { content: "PP"; color: #fff8ef; font-size: 12px; font-weight: 800; }
+.preview-sticker-thanks { background: #6d9a7c; }
+.preview-sticker-thanks::after { content: "TY"; color: #fff8ef; font-size: 12px; font-weight: 800; }
+.preview-sticker-heart { background: #e07a8c; }
+.preview-sticker-heart::after { content: "♥"; color: #fff8ef; font-size: 16px; }
+.preview-sticker-smile { background: #e2b15a; }
+.preview-sticker-smile::after { content: ":)"; color: #5a3d10; font-size: 14px; font-weight: 800; }
+
+.preview-tape-clear { background: linear-gradient(180deg, rgba(255,248,220,.55), rgba(232,196,120,.75)); }
+.preview-tape-pink { background: linear-gradient(180deg, #f3c0cb, #e28aa0); }
+.preview-tape-kraft { background: linear-gradient(180deg, #dfc09a, #c09060); }
+.preview-tape-branded {
+  background:
+    repeating-linear-gradient(90deg, #d46a4c 0 10px, #fff8ef 10px 20px),
+    #d46a4c;
+}
+
+.preview-table-wood { background: linear-gradient(180deg, #e8c9a0, #c9a578); }
+.preview-table-white { background: linear-gradient(180deg, #f6f1ea, #e5ddd2); }
+.preview-table-pink { background: linear-gradient(180deg, #f4d4ce, #e5b6ae); }
+
+.preview-bg-bedroom { background: linear-gradient(180deg, #fff6ea, #f3e4d2 45%, #e7d0b8); }
+.preview-bg-small { background: linear-gradient(180deg, #eef3f6, #d9e2ea 50%, #c5d0db); }
+.preview-bg-boutique { background: linear-gradient(180deg, #f8ece6, #ead0c8 48%, #d8b5ab); }
+
+/* ——— Equipped cosmetics via #app data-* ——— */
+
+/* Box styles */
+#app[data-box="kraft"] {
+  --box-lid: #d8ae80;
+  --box-shell: var(--cardboard);
+  --box-shell-deep: var(--cardboard-deep);
+  --box-inner-top: #edd2ab;
+  --box-inner: var(--kraft);
+}
+#app[data-box="white_box"] {
+  --box-lid: #f3eee6;
+  --box-shell: #f7f4ef;
+  --box-shell-deep: #ddd4c8;
+  --box-inner-top: #fffdf9;
+  --box-inner: #f2ebe2;
+}
+#app[data-box="soft_pink_box"] {
+  --box-lid: #f0c9c4;
+  --box-shell: #f3d2cd;
+  --box-shell-deep: #d9a9a2;
+  --box-inner-top: #fbe4e0;
+  --box-inner: #f0cfc9;
+}
+#app[data-box="black_box"] {
+  --box-lid: #4a433c;
+  --box-shell: #2c2722;
+  --box-shell-deep: #151210;
+  --box-inner-top: #3a342f;
+  --box-inner: #26211d;
+}
+
+#app[data-box] .box-flap-top {
+  background: linear-gradient(180deg, var(--box-lid), var(--box-shell));
+}
+#app[data-box] .box-frame {
+  background: linear-gradient(180deg, var(--box-shell) 0%, var(--box-shell-deep) 100%);
+}
+#app[data-box] .pack-area {
+  background:
+    repeating-linear-gradient(90deg, var(--kraft-line) 0 2px, transparent 2px 9px),
+    linear-gradient(180deg, var(--box-inner-top) 0%, var(--box-inner) 100%);
+}
+#app[data-box="black_box"] .box-size-tag,
+#app[data-box="black_box"] .finish-box-tag {
+  color: #f3ebe2;
+}
+#app[data-box] .finish-lid {
+  background: linear-gradient(180deg, var(--box-lid), var(--box-shell));
+}
+#app[data-box] .finish-box {
+  background: linear-gradient(180deg, var(--box-shell) 0%, var(--box-shell-deep) 100%);
+}
+#app[data-box] .finish-flap {
+  background: linear-gradient(180deg, var(--box-lid), var(--box-shell));
+}
+
+/* Tissue styles */
+#app[data-tissue="plain"] .finish-tissue {
+  background:
+    repeating-linear-gradient(28deg, rgba(255, 248, 239, 0.2) 0 8px, rgba(232, 196, 170, 0.45) 8px 16px),
+    #f7efe4;
+}
+#app[data-tissue="hearts"] .finish-tissue {
+  background:
+    radial-gradient(circle at 18% 28%, rgba(232, 122, 138, 0.55) 0 4px, transparent 5px),
+    radial-gradient(circle at 42% 48%, rgba(232, 122, 138, 0.45) 0 3px, transparent 4px),
+    radial-gradient(circle at 70% 30%, rgba(232, 122, 138, 0.5) 0 3.5px, transparent 4.5px),
+    radial-gradient(circle at 82% 62%, rgba(232, 122, 138, 0.4) 0 3px, transparent 4px),
+    linear-gradient(180deg, #fbf0ed, #f3ddd7);
+}
+#app[data-tissue="stars"] .finish-tissue {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(226, 177, 90, 0.7) 0 2px, transparent 3px),
+    radial-gradient(circle at 48% 52%, rgba(226, 177, 90, 0.55) 0 2px, transparent 3px),
+    radial-gradient(circle at 74% 28%, rgba(226, 177, 90, 0.65) 0 2.5px, transparent 3.5px),
+    radial-gradient(circle at 86% 66%, rgba(226, 177, 90, 0.5) 0 2px, transparent 3px),
+    linear-gradient(180deg, #f7f1e4, #ebe1cf);
+}
+#app[data-tissue="minimal_lines"] .finish-tissue {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 9px, rgba(90, 60, 40, 0.12) 9px 10px),
+    linear-gradient(180deg, #faf7f1, #efe7db);
+}
+
+/* Sticker styles */
+#app[data-sticker="default"] .finish-sticker,
+#app[data-sticker="default"] .finish-sticker-spot.is-on {
+  background: #d46a4c;
+  color: #fff8ef;
+}
+#app[data-sticker="thank_you"] .finish-sticker,
+#app[data-sticker="thank_you"] .finish-sticker-spot.is-on {
+  background: #6d9a7c;
+  color: #fff8ef;
+}
+#app[data-sticker="heart"] .finish-sticker,
+#app[data-sticker="heart"] .finish-sticker-spot.is-on {
+  background: #e07a8c;
+  color: #fff8ef;
+}
+#app[data-sticker="smile"] .finish-sticker,
+#app[data-sticker="smile"] .finish-sticker-spot.is-on {
+  background: #e2b15a;
+  color: #5a3d10;
+}
+
+/* Tape styles */
+#app[data-tape="clear"] .finish-tape {
+  background: linear-gradient(180deg, rgba(255, 248, 220, 0.55), rgba(232, 196, 120, 0.85));
+}
+#app[data-tape="pink_tape"] .finish-tape {
+  background: linear-gradient(180deg, rgba(255, 210, 220, 0.75), rgba(226, 138, 160, 0.9));
+}
+#app[data-tape="kraft_tape"] .finish-tape {
+  background: linear-gradient(180deg, #e2c49e, #c09060);
+}
+#app[data-tape="branded_tape"] .finish-tape {
+  background:
+    repeating-linear-gradient(90deg, rgba(212, 106, 76, 0.95) 0 14px, rgba(255, 248, 239, 0.9) 14px 28px);
+}
+
+/* Table styles */
+#app[data-table="wood"] .table-surface,
+#app[data-table="wood"] .desk-preview {
+  background:
+    repeating-linear-gradient(90deg, rgba(120, 80, 40, 0.05) 0 12px, transparent 12px 24px),
+    linear-gradient(180deg, #e8c9a0 0%, var(--wood) 55%, #c9a578 100%);
+}
+#app[data-table="white_table"] .table-surface,
+#app[data-table="white_table"] .desk-preview {
+  background:
+    repeating-linear-gradient(90deg, rgba(90, 70, 50, 0.04) 0 12px, transparent 12px 24px),
+    linear-gradient(180deg, #f7f2ea 0%, #ebe3d8 55%, #ddd3c6 100%);
+}
+#app[data-table="pink_table"] .table-surface,
+#app[data-table="pink_table"] .desk-preview {
+  background:
+    repeating-linear-gradient(90deg, rgba(160, 80, 90, 0.05) 0 12px, transparent 12px 24px),
+    linear-gradient(180deg, #f6ddd8 0%, #e9c2bb 55%, #d9a8a1 100%);
+}
+
+/* Background / studio */
+#app[data-background="bedroom"] {
+  --studio-top: #fff6ea;
+  --studio-mid: var(--bg);
+  --studio-deep: var(--bg-deep);
+}
+#app[data-background="small_studio"] {
+  --studio-top: #eef3f6;
+  --studio-mid: #dfe7ee;
+  --studio-deep: #c8d3de;
+}
+#app[data-background="boutique_studio"] {
+  --studio-top: #f8ece6;
+  --studio-mid: #edd6ce;
+  --studio-deep: #d9b7ac;
+}
+
+#app[data-background] {
+  background:
+    radial-gradient(120% 60% at 50% -10%, var(--studio-top) 0%, transparent 55%),
+    linear-gradient(180deg, var(--studio-top) 0%, var(--studio-mid) 38%, var(--studio-deep) 100%);
+}
+#app[data-background] .packing-stage {
+  background:
+    radial-gradient(120% 60% at 50% -10%, var(--studio-top) 0%, transparent 55%),
+    linear-gradient(180deg, var(--studio-top) 0%, var(--studio-mid) 38%, var(--studio-deep) 100%);
+}

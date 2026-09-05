@@ -256,7 +256,306 @@
     return Math.round(v / 1000) + "k";
   }
 
+  
   // ===========================================================================
+  // COSMETICS
+  // Brand / style unlocks. Separate from SHOP_UPGRADES (no gameplay power).
+  // Visuals apply via data-* on #app — never inline styles for cosmetics.
+  // Theme-match scoring hook exists but stays OFF in v1.
+  // ===========================================================================
+  const COSMETIC_CATEGORIES = ["box", "tissue", "sticker", "tape", "table", "background"];
+
+  const COSMETIC_CATEGORY_LABELS = {
+    box: "Box Style",
+    tissue: "Tissue Style",
+    sticker: "Sticker Style",
+    tape: "Tape Style",
+    table: "Table Style",
+    background: "Background / Studio",
+  };
+
+  const THEME_MATCH = {
+    enabled: false,
+    aestheticBonus: 2,
+  };
+
+  const COSMETICS = {
+    kraft: {
+      id: "kraft",
+      category: "box",
+      name: "Kraft",
+      price: 0,
+      unlockLevel: 1,
+      defaultUnlocked: true,
+      previewClass: "preview-box-kraft",
+    },
+    white_box: {
+      id: "white_box",
+      category: "box",
+      name: "White",
+      price: 45,
+      unlockLevel: 1,
+      defaultUnlocked: false,
+      previewClass: "preview-box-white",
+    },
+    soft_pink_box: {
+      id: "soft_pink_box",
+      category: "box",
+      name: "Soft Pink",
+      price: 70,
+      unlockLevel: 2,
+      defaultUnlocked: false,
+      previewClass: "preview-box-soft-pink",
+    },
+    black_box: {
+      id: "black_box",
+      category: "box",
+      name: "Black",
+      price: 95,
+      unlockLevel: 3,
+      defaultUnlocked: false,
+      previewClass: "preview-box-black",
+    },
+    plain: {
+      id: "plain",
+      category: "tissue",
+      name: "Plain",
+      price: 0,
+      unlockLevel: 1,
+      defaultUnlocked: true,
+      previewClass: "preview-tissue-plain",
+    },
+    hearts: {
+      id: "hearts",
+      category: "tissue",
+      name: "Hearts",
+      price: 35,
+      unlockLevel: 1,
+      defaultUnlocked: false,
+      previewClass: "preview-tissue-hearts",
+    },
+    stars: {
+      id: "stars",
+      category: "tissue",
+      name: "Stars",
+      price: 40,
+      unlockLevel: 2,
+      defaultUnlocked: false,
+      previewClass: "preview-tissue-stars",
+    },
+    minimal_lines: {
+      id: "minimal_lines",
+      category: "tissue",
+      name: "Minimal Lines",
+      price: 55,
+      unlockLevel: 3,
+      defaultUnlocked: false,
+      previewClass: "preview-tissue-lines",
+    },
+    default: {
+      id: "default",
+      category: "sticker",
+      name: "PP Default",
+      price: 0,
+      unlockLevel: 1,
+      defaultUnlocked: true,
+      previewClass: "preview-sticker-default",
+      stickerLabel: "PP",
+    },
+    thank_you: {
+      id: "thank_you",
+      category: "sticker",
+      name: "Thank You",
+      price: 30,
+      unlockLevel: 1,
+      defaultUnlocked: false,
+      previewClass: "preview-sticker-thanks",
+      stickerLabel: "TY",
+    },
+    heart: {
+      id: "heart",
+      category: "sticker",
+      name: "Heart",
+      price: 40,
+      unlockLevel: 2,
+      defaultUnlocked: false,
+      previewClass: "preview-sticker-heart",
+      stickerLabel: "♥",
+    },
+    smile: {
+      id: "smile",
+      category: "sticker",
+      name: "Smile",
+      price: 40,
+      unlockLevel: 2,
+      defaultUnlocked: false,
+      previewClass: "preview-sticker-smile",
+      stickerLabel: ":)",
+    },
+    clear: {
+      id: "clear",
+      category: "tape",
+      name: "Clear",
+      price: 0,
+      unlockLevel: 1,
+      defaultUnlocked: true,
+      previewClass: "preview-tape-clear",
+    },
+    pink_tape: {
+      id: "pink_tape",
+      category: "tape",
+      name: "Pink",
+      price: 35,
+      unlockLevel: 1,
+      defaultUnlocked: false,
+      previewClass: "preview-tape-pink",
+    },
+    kraft_tape: {
+      id: "kraft_tape",
+      category: "tape",
+      name: "Kraft",
+      price: 45,
+      unlockLevel: 2,
+      defaultUnlocked: false,
+      previewClass: "preview-tape-kraft",
+    },
+    branded_tape: {
+      id: "branded_tape",
+      category: "tape",
+      name: "Branded",
+      price: 80,
+      unlockLevel: 4,
+      defaultUnlocked: false,
+      previewClass: "preview-tape-branded",
+    },
+    wood: {
+      id: "wood",
+      category: "table",
+      name: "Wood",
+      price: 0,
+      unlockLevel: 1,
+      defaultUnlocked: true,
+      previewClass: "preview-table-wood",
+    },
+    white_table: {
+      id: "white_table",
+      category: "table",
+      name: "White",
+      price: 60,
+      unlockLevel: 2,
+      defaultUnlocked: false,
+      previewClass: "preview-table-white",
+    },
+    pink_table: {
+      id: "pink_table",
+      category: "table",
+      name: "Pink",
+      price: 75,
+      unlockLevel: 3,
+      defaultUnlocked: false,
+      previewClass: "preview-table-pink",
+    },
+    bedroom: {
+      id: "bedroom",
+      category: "background",
+      name: "Bedroom",
+      price: 0,
+      unlockLevel: 1,
+      defaultUnlocked: true,
+      previewClass: "preview-bg-bedroom",
+    },
+    small_studio: {
+      id: "small_studio",
+      category: "background",
+      name: "Small Studio",
+      price: 90,
+      unlockLevel: 3,
+      defaultUnlocked: false,
+      previewClass: "preview-bg-small",
+    },
+    boutique_studio: {
+      id: "boutique_studio",
+      category: "background",
+      name: "Boutique Studio",
+      price: 160,
+      unlockLevel: 5,
+      defaultUnlocked: false,
+      previewClass: "preview-bg-boutique",
+    },
+  };
+
+  const DEFAULT_EQUIPPED_COSMETICS = {
+    box: "kraft",
+    tissue: "plain",
+    sticker: "default",
+    tape: "clear",
+    table: "wood",
+    background: "bedroom",
+  };
+
+  function emptyUnlockedCosmetics() {
+    const out = {};
+    Object.keys(COSMETICS).forEach(function (id) {
+      if (COSMETICS[id].defaultUnlocked) out[id] = true;
+    });
+    return out;
+  }
+
+  function defaultEquippedCosmetics() {
+    return Object.assign({}, DEFAULT_EQUIPPED_COSMETICS);
+  }
+
+  function cosmeticsInCategory(category) {
+    return Object.keys(COSMETICS)
+      .map(function (id) {
+        return COSMETICS[id];
+      })
+      .filter(function (c) {
+        return c.category === category;
+      });
+  }
+
+  function isCosmeticUnlocked(id) {
+    return !!(gameState.unlockedCosmetics && gameState.unlockedCosmetics[id]);
+  }
+
+  function equippedCosmeticId(category) {
+    const eq = gameState.equippedCosmetics || DEFAULT_EQUIPPED_COSMETICS;
+    return eq[category] || DEFAULT_EQUIPPED_COSMETICS[category];
+  }
+
+  function equippedCosmetic(category) {
+    return COSMETICS[equippedCosmeticId(category)] || null;
+  }
+
+  function stickerLabelText() {
+    const c = equippedCosmetic("sticker");
+    return (c && c.stickerLabel) || "PP";
+  }
+
+  function themeMatchAestheticBonus() {
+    if (!THEME_MATCH.enabled) return 0;
+    // Reserved for customer-request theme matches (gift/birthday/premium).
+    return 0;
+  }
+
+  function applyEquippedCosmetics() {
+    if (!dom.app) return;
+    const eq = gameState.equippedCosmetics || DEFAULT_EQUIPPED_COSMETICS;
+    COSMETIC_CATEGORIES.forEach(function (cat) {
+      const id = eq[cat] || DEFAULT_EQUIPPED_COSMETICS[cat];
+      dom.app.setAttribute("data-" + cat, id);
+    });
+    if (dom.finishSticker) {
+      const label = stickerLabelText();
+      const span = dom.finishSticker.querySelector("span");
+      if (span) span.textContent = label;
+      else dom.finishSticker.textContent = label;
+    }
+  }
+
+
+// ===========================================================================
   // PRODUCT_TYPES
   // Booleans default false. Instance state (protection, compress) lives on
   // each spawned product, not on the type.
@@ -797,6 +1096,10 @@
     expressFailed: false,
     stage: "desk",
     upgrades: emptyUpgrades(),
+    unlockedCosmetics: emptyUnlockedCosmetics(),
+    equippedCosmetics: defaultEquippedCosmetics(),
+    shopTab: "upgrades",
+    styleFilter: "all",
     followers: 0,
     lastViralAt: 0,
     viralPending: false,
@@ -834,6 +1137,13 @@
     dom.shopBtn = $("shop-btn");
     dom.shopOverlay = $("shop-overlay");
     dom.shopList = $("shop-list");
+    dom.shopTabUpgrades = $("shop-tab-upgrades");
+    dom.shopTabStyle = $("shop-tab-style");
+    dom.shopPanelUpgrades = $("shop-panel-upgrades");
+    dom.shopPanelStyle = $("shop-panel-style");
+    dom.styleFilters = $("style-filters");
+    dom.styleList = $("style-list");
+    dom.shopTitle = $("shop-title");
     dom.shopCash = $("shop-cash");
     dom.shopClose = $("shop-close");
     dom.shopOpenResult = $("shop-open-result");
@@ -1434,6 +1744,8 @@
     if (gameState.finish && gameState.finish.active && !gameState.finish.completed) return;
     if (gameState.drag) return;
     if (isViralActive()) return;
+    if (!gameState.shopTab) gameState.shopTab = "upgrades";
+    if (!gameState.styleFilter) gameState.styleFilter = "all";
     renderShop();
     setOverlayOpen(dom.shopOverlay, true);
     playSound("place");
@@ -1443,9 +1755,47 @@
     setOverlayOpen(dom.shopOverlay, false);
   }
 
+  function setShopTab(tab) {
+    gameState.shopTab = tab === "style" ? "style" : "upgrades";
+    renderShop();
+  }
+
+  function setStyleFilter(cat) {
+    gameState.styleFilter = cat || "all";
+    renderStyleShop();
+  }
+
   function renderShop() {
-    if (!dom.shopList) return;
     renderCash();
+    const tab = gameState.shopTab === "style" ? "style" : "upgrades";
+    if (dom.shopTabUpgrades) {
+      dom.shopTabUpgrades.classList.toggle("is-on", tab === "upgrades");
+      dom.shopTabUpgrades.setAttribute("aria-selected", tab === "upgrades" ? "true" : "false");
+    }
+    if (dom.shopTabStyle) {
+      dom.shopTabStyle.classList.toggle("is-on", tab === "style");
+      dom.shopTabStyle.setAttribute("aria-selected", tab === "style" ? "true" : "false");
+    }
+    if (dom.shopPanelUpgrades) {
+      dom.shopPanelUpgrades.classList.toggle("is-on", tab === "upgrades");
+      dom.shopPanelUpgrades.hidden = tab !== "upgrades";
+    }
+    if (dom.shopPanelStyle) {
+      dom.shopPanelStyle.classList.toggle("is-on", tab === "style");
+      dom.shopPanelStyle.hidden = tab !== "style";
+    }
+    if (dom.shopTitle) {
+      dom.shopTitle.textContent = tab === "style" ? "Style Shop" : "Shop Upgrades";
+    }
+    if (dom.shopOverlay) {
+      dom.shopOverlay.classList.toggle("is-style", tab === "style");
+    }
+    if (tab === "style") renderStyleShop();
+    else renderUpgradeShop();
+  }
+
+  function renderUpgradeShop() {
+    if (!dom.shopList) return;
     dom.shopList.innerHTML = "";
     SHOP_UPGRADE_IDS.forEach(function (id) {
       const spec = SHOP_UPGRADES[id];
@@ -1496,6 +1846,77 @@
     });
   }
 
+  function renderStyleShop() {
+    if (!dom.styleList) return;
+    const filter = gameState.styleFilter || "all";
+    if (dom.styleFilters) {
+      Array.prototype.forEach.call(dom.styleFilters.querySelectorAll("[data-style-cat]"), function (btn) {
+        btn.classList.toggle("is-on", btn.getAttribute("data-style-cat") === filter);
+      });
+    }
+    dom.styleList.innerHTML = "";
+    const ids = Object.keys(COSMETICS).filter(function (id) {
+      const c = COSMETICS[id];
+      return filter === "all" || c.category === filter;
+    });
+    ids.forEach(function (id) {
+      const c = COSMETICS[id];
+      const unlocked = isCosmeticUnlocked(id);
+      const equipped = equippedCosmeticId(c.category) === id;
+      const levelOk = gameState.level >= (c.unlockLevel || 1);
+      const canBuy = !unlocked && levelOk && gameState.cash + 1e-9 >= c.price;
+      const li = document.createElement("li");
+      let state = "locked";
+      if (equipped) state = "equipped";
+      else if (unlocked) state = "owned";
+      else if (levelOk) state = "available";
+      li.className = "style-card is-" + state;
+      li.setAttribute("data-cosmetic", id);
+      li.setAttribute("data-category", c.category);
+
+      let action = "";
+      if (equipped) {
+        action =
+          '<button class="style-action is-equipped" type="button" disabled>EQUIPPED</button>';
+      } else if (unlocked) {
+        action =
+          '<button class="style-action style-equip" type="button" data-equip="' +
+          id +
+          '">EQUIP</button>';
+      } else if (!levelOk) {
+        action =
+          '<button class="style-action is-locked" type="button" disabled>LV ' +
+          c.unlockLevel +
+          "</button>";
+      } else {
+        action =
+          '<button class="style-action style-buy" type="button" data-buy-cosmetic="' +
+          id +
+          '"' +
+          (canBuy ? "" : " disabled") +
+          ">" +
+          formatMoney(c.price) +
+          "</button>";
+      }
+
+      li.innerHTML =
+        '<div class="style-preview ' +
+        c.previewClass +
+        '" aria-hidden="true"></div><div class="style-card-body"><p class="style-card-cat">' +
+        (COSMETIC_CATEGORY_LABELS[c.category] || c.category) +
+        '</p><p class="style-card-name">' +
+        c.name +
+        "</p>" +
+        (equipped ? '<p class="style-card-status">Equipped</p>' : "") +
+        (!unlocked && !levelOk
+          ? '<p class="style-card-status">Unlocks at level ' + c.unlockLevel + "</p>"
+          : "") +
+        action +
+        "</div>";
+      dom.styleList.appendChild(li);
+    });
+  }
+
   function upgradeListPrice(row) {
     return cents(row.cost * followerProgress().shopCostMult);
   }
@@ -1526,6 +1947,40 @@
     renderShop();
     renderCash();
     scheduleFitBox();
+  }
+
+  function buyCosmetic(id) {
+    const c = COSMETICS[id];
+    if (!c || isCosmeticUnlocked(id)) return;
+    if (gameState.level < (c.unlockLevel || 1)) {
+      playSound("error");
+      showRequestToast("Reach level " + c.unlockLevel + " first");
+      return;
+    }
+    if (gameState.cash + 1e-9 < c.price) {
+      playSound("error");
+      haptic(10);
+      showRequestToast("Not enough cash");
+      return;
+    }
+    gameState.cash = cents(gameState.cash - c.price);
+    gameState.unlockedCosmetics[id] = true;
+    gameState.equippedCosmetics[c.category] = id;
+    applyEquippedCosmetics();
+    playSound("complete");
+    haptic(12);
+    renderShop();
+    renderCash();
+  }
+
+  function equipCosmetic(id) {
+    const c = COSMETICS[id];
+    if (!c || !isCosmeticUnlocked(id)) return;
+    gameState.equippedCosmetics[c.category] = id;
+    applyEquippedCosmetics();
+    playSound("place");
+    haptic(8);
+    renderStyleShop();
   }
 
   function isViralActive() {
@@ -3075,6 +3530,8 @@
 
     accuracy = roundScore(clamp(accuracy + upgradeEffect("accuracyBonus", 0), 0, 100));
     aesthetic = roundScore(clamp(aesthetic + upgradeEffect("aestheticBonus", 0), 0, 100));
+    // Cosmetics stay cosmetic: theme-match bonus is scaffolded but disabled (THEME_MATCH.enabled).
+    aesthetic = roundScore(clamp(aesthetic + themeMatchAestheticBonus(), 0, 100));
 
     const categories = {
       accuracy: accuracy,
@@ -3989,12 +4446,44 @@
         if (event.target === dom.shopOverlay) closeShop();
       });
     }
+    if (dom.shopTabUpgrades) {
+      dom.shopTabUpgrades.addEventListener("click", function () {
+        setShopTab("upgrades");
+      });
+    }
+    if (dom.shopTabStyle) {
+      dom.shopTabStyle.addEventListener("click", function () {
+        setShopTab("style");
+      });
+    }
+    if (dom.styleFilters) {
+      dom.styleFilters.addEventListener("click", function (event) {
+        const btn = event.target.closest("[data-style-cat]");
+        if (!btn) return;
+        setStyleFilter(btn.getAttribute("data-style-cat"));
+      });
+    }
     if (dom.shopList) {
       dom.shopList.addEventListener("pointerup", function (event) {
         const btn = event.target.closest("[data-upgrade].shop-buy");
         if (!btn || btn.disabled) return;
         event.preventDefault();
         buyUpgrade(btn.getAttribute("data-upgrade"));
+      });
+    }
+    if (dom.styleList) {
+      dom.styleList.addEventListener("pointerup", function (event) {
+        const buyBtn = event.target.closest("[data-buy-cosmetic]");
+        if (buyBtn && !buyBtn.disabled) {
+          event.preventDefault();
+          buyCosmetic(buyBtn.getAttribute("data-buy-cosmetic"));
+          return;
+        }
+        const eqBtn = event.target.closest("[data-equip]");
+        if (eqBtn && !eqBtn.disabled) {
+          event.preventDefault();
+          equipCosmetic(eqBtn.getAttribute("data-equip"));
+        }
       });
     }
     if (dom.viralGo) {
@@ -4658,7 +5147,7 @@
         finish.stickerPlaced = true;
         prop.classList.add("is-hidden");
         dom.finishStickerSpot.classList.add("is-on");
-        dom.finishStickerSpot.textContent = "PP";
+        dom.finishStickerSpot.textContent = stickerLabelText();
         succeedFinish("sticker");
         return;
       }
@@ -4756,6 +5245,7 @@
     updatePackButton();
     startExpressTimer();
     enterDesk();
+    applyEquippedCosmetics();
     renderShop();
     if (viralPreviewMode()) {
       window.setTimeout(openViralSplash, 480);

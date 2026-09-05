@@ -69,3 +69,4 @@ To add content later without rewriting the loop:
 - Bigger carton → `BOX_TYPES`, then set `idealBox` on an order
 - New / rebalanced upgrade → row in `SHOP_UPGRADES` (cost, perk, `effects`)
 - Viral rush timing / rewards → `VIRAL_EVENT`
+- Brand cosmetics → `COSMETICS` (Style tab in the shop; look only, not power)
