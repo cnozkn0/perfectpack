@@ -57,6 +57,39 @@
   };
 
   // ===========================================================================
+  // VIRAL_EVENT
+  // Rare cozy-to-rush spike. Tunables live here; call sites use viralCfg()
+  // and followerProgress() so volume / shop hooks stay in one place.
+  // ===========================================================================
+  const VIRAL_EVENT = {
+    FIRST_AFTER: 4,
+    COOLDOWN: 14,
+    MIN_RATING: 3.4,
+    DURATION_MIN_MS: 180000,
+    DURATION_MAX_MS: 300000,
+    QUEUE_MIN: 20,
+    QUEUE_MAX: 28,
+    MAX_ITEMS: 2,
+    SKIP_FINISH: true,
+    AUTO_PACK: true,
+    BETWEEN_MS: 900,
+    BURST_ORDERS: [22, 28],
+    BURST_FOLLOWERS: [720, 980],
+    FOLLOWERS_PER_SHIP: 42,
+    FOLLOWERS_PER_PERFECT: 70,
+    FOLLOWERS_ON_FAIL: -18,
+    BONUS_PER_SHIP: 14,
+    BONUS_PER_PERFECT: 16,
+    BONUS_SCORE_REF: 80,
+    FOLLOWER_TIERS: [
+      { min: 0, id: "local", orderVolumeMult: 1, shopCostMult: 1 },
+      { min: 500, id: "known", orderVolumeMult: 1.04, shopCostMult: 1 },
+      { min: 2000, id: "popular", orderVolumeMult: 1.1, shopCostMult: 0.98 },
+      { min: 8000, id: "famous", orderVolumeMult: 1.18, shopCostMult: 0.95 },
+    ],
+  };
+
+  // ===========================================================================
   // SHOP_UPGRADES
   // levels[n] is the purchase that raises the upgrade TO level n+1.
   // effects are cumulative for that owned level (not stacked deltas).
@@ -198,6 +231,29 @@
     const effects = upgradeEffects();
     if (Object.prototype.hasOwnProperty.call(effects, key)) return effects[key];
     return fallback;
+  }
+
+  function followerProgress() {
+    const n = Math.max(0, (gameState && gameState.followers) || 0);
+    const tiers = VIRAL_EVENT.FOLLOWER_TIERS;
+    let tier = tiers[0];
+    for (let i = 0; i < tiers.length; i += 1) {
+      if (n >= tiers[i].min) tier = tiers[i];
+    }
+    return {
+      count: n,
+      tier: tier.id,
+      orderVolumeMult: tier.orderVolumeMult,
+      shopCostMult: tier.shopCostMult,
+      extraViralQueue: Math.floor(n / 2000),
+    };
+  }
+
+  function formatFollowers(n) {
+    const v = Math.max(0, Math.round(n || 0));
+    if (v < 1000) return String(v);
+    if (v < 10000) return (Math.round(v / 100) / 10).toFixed(1).replace(/\.0$/, "") + "k";
+    return Math.round(v / 1000) + "k";
   }
 
   // ===========================================================================
@@ -741,6 +797,10 @@
     expressFailed: false,
     stage: "desk",
     upgrades: emptyUpgrades(),
+    followers: 0,
+    lastViralAt: 0,
+    viralPending: false,
+    viral: null,
     timers: {
       reject: 0,
       snap: 0,
@@ -749,6 +809,8 @@
       express: 0,
       toast: 0,
       review: 0,
+      viral: 0,
+      viralPulse: 0,
     },
   };
 
@@ -775,6 +837,22 @@
     dom.shopCash = $("shop-cash");
     dom.shopClose = $("shop-close");
     dom.shopOpenResult = $("shop-open-result");
+    dom.shopFollowers = $("shop-followers");
+    dom.viralBanner = $("viral-banner");
+    dom.viralClock = $("viral-clock");
+    dom.viralShippedLine = $("viral-shipped-line");
+    dom.viralSplash = $("viral-splash");
+    dom.viralGo = $("viral-go");
+    dom.viralLater = $("viral-later");
+    dom.viralBurstOrders = $("viral-burst-orders");
+    dom.viralBurstFollowers = $("viral-burst-followers");
+    dom.viralRecap = $("viral-recap");
+    dom.viralRecapShipped = $("viral-recap-shipped");
+    dom.viralRecapPerfect = $("viral-recap-perfect");
+    dom.viralRecapFollowers = $("viral-recap-followers");
+    dom.viralRecapBonus = $("viral-recap-bonus");
+    dom.viralRecapDone = $("viral-recap-done");
+    dom.viralPulse = $("viral-pulse");
     dom.orderTitle = $("order-title");
     dom.orderCount = $("order-count");
     dom.orderItems = $("order-items");
@@ -1173,7 +1251,11 @@
   }
 
   function createOrder() {
-    const template = pickOrderTemplate();
+    let template;
+    if (isViralActive()) {
+      template = takeViralOrder();
+    }
+    if (!template) template = pickOrderTemplate();
     const idealBox = template.idealBox || "medium";
     // VIP catalog hook: when shouldOfferVipOrder() is true, future VIP_ORDERS
     // can replace `template`. For now the flag rides on the same SKUs.
@@ -1184,8 +1266,9 @@
       idealBox: idealBox,
       request: template.request || null,
       quote: template.quote || null,
-      timerSeconds: template.timerSeconds || null,
+      timerSeconds: isViralActive() ? null : template.timerSeconds || null,
       vip: shouldOfferVipOrder(),
+      viral: isViralActive(),
     };
     applySelectedBox(idealBox, { dumpItems: false });
   }
@@ -1336,6 +1419,9 @@
     if (dom.shopPerfects) {
       dom.shopPerfects.textContent = String(gameState.perfectPacks);
     }
+    if (dom.shopFollowers) {
+      dom.shopFollowers.textContent = formatFollowers(gameState.followers);
+    }
     if (dom.shopStats) {
       dom.shopStats.classList.toggle("is-vip", !!gameState.vipUnlocked);
     }
@@ -1347,6 +1433,7 @@
   function openShop() {
     if (gameState.finish && gameState.finish.active && !gameState.finish.completed) return;
     if (gameState.drag) return;
+    if (isViralActive()) return;
     renderShop();
     setOverlayOpen(dom.shopOverlay, true);
     playSound("place");
@@ -1367,7 +1454,8 @@
       const next = spec.levels[lv];
       const owned = lv ? spec.levels[lv - 1] : null;
       const li = document.createElement("li");
-      const canBuy = !!(next && gameState.cash + 1e-9 >= next.cost);
+      const price = next ? upgradeListPrice(next) : 0;
+      const canBuy = !!(next && gameState.cash + 1e-9 >= price);
       li.className =
         "shop-card" + (lv >= max ? " is-max" : "") + (next && !canBuy ? " is-locked" : "");
       li.setAttribute("data-upgrade", id);
@@ -1379,7 +1467,7 @@
 
       const perk = next ? "Next · " + next.perk : owned ? "Max · " + owned.perk : spec.blurb;
       const btnLabel = next
-        ? "LV" + (lv + 1) + "  " + formatMoney(next.cost)
+        ? "LV" + (lv + 1) + "  " + formatMoney(price)
         : "MAXED";
 
       li.innerHTML =
@@ -1408,6 +1496,10 @@
     });
   }
 
+  function upgradeListPrice(row) {
+    return cents(row.cost * followerProgress().shopCostMult);
+  }
+
   function buyUpgrade(id) {
     const spec = SHOP_UPGRADES[id];
     if (!spec) return;
@@ -1415,7 +1507,8 @@
     const next = spec.levels[lv];
     const card = dom.shopList && dom.shopList.querySelector('[data-upgrade="' + id + '"]');
     if (!next) return;
-    if (gameState.cash + 1e-9 < next.cost) {
+    const price = upgradeListPrice(next);
+    if (gameState.cash + 1e-9 < price) {
       playSound("error");
       haptic(10);
       showRequestToast("Not enough cash");
@@ -1426,13 +1519,301 @@
       }
       return;
     }
-    gameState.cash = cents(gameState.cash - next.cost);
+    gameState.cash = cents(gameState.cash - price);
     gameState.upgrades[id] = lv + 1;
     playSound("complete");
     haptic(12);
     renderShop();
     renderCash();
     scheduleFitBox();
+  }
+
+  function isViralActive() {
+    return !!(gameState.viral && gameState.viral.active);
+  }
+
+  function viralTimeLeft() {
+    const v = gameState.viral;
+    if (!v || !v.active) return 0;
+    return Math.max(0, v.endsAt - Date.now());
+  }
+
+  function viralHasQueue() {
+    return !!(gameState.viral && gameState.viral.queue && gameState.viral.queue.length);
+  }
+
+  function viralPreviewMode() {
+    try {
+      return new URLSearchParams(window.location.search).get("viral") === "1";
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function shouldOfferViralEvent() {
+    if (isViralActive() || gameState.viralPending) return false;
+    if (viralPreviewMode() && gameState.totalOrders >= 1) return true;
+    if (gameState.totalOrders < VIRAL_EVENT.FIRST_AFTER) return false;
+    if (gameState.shopRating < VIRAL_EVENT.MIN_RATING) return false;
+    if (!gameState.lastViralAt) return gameState.totalOrders >= VIRAL_EVENT.FIRST_AFTER;
+    return gameState.totalOrders - gameState.lastViralAt >= VIRAL_EVENT.COOLDOWN;
+  }
+
+  function viralRoll(min, max) {
+    const span = Math.max(0, max - min);
+    const seed = ((gameState.totalOrders + 3) * 17 + (gameState.followers || 0) * 5) % 1000;
+    return min + Math.round((seed / 999) * span);
+  }
+
+  function buildViralQueue(size) {
+    const pool = ORDERS.filter(function (template) {
+      return orderUnlocked(template) && itemCount(template.items) <= VIRAL_EVENT.MAX_ITEMS;
+    });
+    const source = pool.length ? pool : ORDERS.filter(orderUnlocked);
+    const queue = [];
+    for (let i = 0; i < size; i += 1) {
+      queue.push(source[i % source.length]);
+    }
+    return queue;
+  }
+
+  function takeViralOrder() {
+    if (!viralHasQueue()) return null;
+    return gameState.viral.queue.shift();
+  }
+
+  function paintViralBanner() {
+    if (!dom.viralBanner) return;
+    const on = isViralActive();
+    dom.viralBanner.hidden = !on;
+    if (dom.app) dom.app.classList.toggle("is-viral", on);
+    if (!on) return;
+    const left = viralTimeLeft();
+    if (dom.viralClock) {
+      dom.viralClock.textContent = formatCountdown(left);
+      dom.viralClock.classList.toggle("is-late", left <= 20000);
+    }
+    if (dom.viralShippedLine) {
+      const n = gameState.viral.shipped || 0;
+      dom.viralShippedLine.textContent = n + " shipped";
+    }
+  }
+
+  function tickViral() {
+    if (!isViralActive()) return;
+    paintViralBanner();
+    if (viralTimeLeft() > 0 && viralHasQueue()) return;
+    gameState.viral.expired = true;
+    if (gameState.packing) return;
+    if (gameState.finish && gameState.finish.active && !gameState.finish.completed) return;
+    endViralEvent();
+  }
+
+  function startViralClock() {
+    window.clearInterval(gameState.timers.viral);
+    tickViral();
+    gameState.timers.viral = window.setInterval(tickViral, 250);
+  }
+
+  function stopViralClock() {
+    window.clearInterval(gameState.timers.viral);
+    gameState.timers.viral = 0;
+  }
+
+  function sealedFinishSnapshot() {
+    const req = getOrderRequest();
+    const banCard = !!(req && req.banCard);
+    const banSticker = !!(req && req.banSticker);
+    const needsCard = !!(req && req.needsCard);
+    return {
+      tissue: 1,
+      cardPlaced: banCard ? false : true,
+      cardSkipped: banCard,
+      flapL: true,
+      flapR: true,
+      stickerPlaced: !banSticker,
+      stickerSkipped: banSticker,
+      tape: 1,
+      labelPlaced: true,
+      scanned: true,
+      needsCard: needsCard,
+    };
+  }
+
+  function openViralSplash() {
+    const cfg = VIRAL_EVENT;
+    const queueN = viralRoll(cfg.QUEUE_MIN, cfg.QUEUE_MAX) + followerProgress().extraViralQueue;
+    const burstF = viralRoll(cfg.BURST_FOLLOWERS[0], cfg.BURST_FOLLOWERS[1]);
+    gameState.viralPending = {
+      queue: queueN,
+      followers: burstF,
+      duration: viralPreviewMode()
+        ? 28000
+        : viralRoll(cfg.DURATION_MIN_MS, cfg.DURATION_MAX_MS),
+    };
+    if (dom.viralBurstOrders) {
+      dom.viralBurstOrders.textContent = "+" + queueN;
+    }
+    if (dom.viralBurstFollowers) {
+      dom.viralBurstFollowers.textContent = "+" + burstF.toLocaleString("en-US");
+    }
+    closeShop();
+    setOverlayOpen(dom.viralSplash, true);
+    playSound("viral");
+    haptic(18);
+  }
+
+  function dismissViralSplash() {
+    setOverlayOpen(dom.viralSplash, false);
+  }
+
+  function declineViralEvent() {
+    gameState.viralPending = false;
+    gameState.lastViralAt = gameState.totalOrders;
+    dismissViralSplash();
+    gameState.orderIndex += 1;
+    createOrder();
+    resetOrder();
+  }
+
+  function acceptViralEvent() {
+    const pending = gameState.viralPending;
+    if (!pending || typeof pending !== "object") return;
+    dismissViralSplash();
+    const queueN = pending.queue;
+    const burstF = pending.followers;
+    const duration = pending.duration;
+    gameState.viralPending = false;
+    gameState.followers += burstF;
+    gameState.viral = {
+      active: true,
+      expired: false,
+      endsAt: Date.now() + duration,
+      queue: buildViralQueue(queueN),
+      shipped: 0,
+      perfect: 0,
+      scoreSum: 0,
+      followersGained: burstF,
+      burstFollowers: burstF,
+    };
+    startViralClock();
+    renderShopStats();
+    paintViralBanner();
+    gameState.orderIndex += 1;
+    createOrder();
+    resetOrder();
+    if (VIRAL_EVENT.AUTO_PACK) enterPacking();
+  }
+
+  function noteViralShip(breakdown) {
+    const v = gameState.viral;
+    if (!v) return;
+    v.shipped += 1;
+    v.scoreSum += breakdown.total || 0;
+    if (breakdown.perfect) v.perfect += 1;
+    const stars = breakdown.review ? breakdown.review.stars : 5;
+    const bad = stars <= 2 || breakdown.total < 50 || (breakdown.request && breakdown.request.id && !breakdown.request.honored);
+    let fans = bad ? VIRAL_EVENT.FOLLOWERS_ON_FAIL : VIRAL_EVENT.FOLLOWERS_PER_SHIP;
+    if (!bad && breakdown.perfect) fans += VIRAL_EVENT.FOLLOWERS_PER_PERFECT;
+    v.followersGained += fans;
+    gameState.followers = Math.max(0, gameState.followers + fans);
+    renderShopStats();
+  }
+
+  function viralBonusCash(session) {
+    const avg = session.shipped ? session.scoreSum / session.shipped : 0;
+    const quality = clamp(avg / VIRAL_EVENT.BONUS_SCORE_REF, 0.45, 1.25);
+    const raw =
+      session.shipped * VIRAL_EVENT.BONUS_PER_SHIP +
+      session.perfect * VIRAL_EVENT.BONUS_PER_PERFECT;
+    return cents(raw * quality);
+  }
+
+  function showViralPulse(breakdown) {
+    if (!dom.viralPulse) return;
+    window.clearTimeout(gameState.timers.viralPulse);
+    const fans = gameState.viral ? gameState.viral.followersGained : 0;
+    dom.viralPulse.hidden = false;
+    dom.viralPulse.textContent =
+      (breakdown.perfect ? "PERFECT  " : "SHIPPED  ") +
+      breakdown.total +
+      "  ·  " +
+      formatFollowers(gameState.followers) +
+      " fans";
+    window.requestAnimationFrame(function () {
+      dom.viralPulse.classList.add("is-on");
+    });
+    gameState.timers.viralPulse = window.setTimeout(function () {
+      dom.viralPulse.classList.remove("is-on");
+      gameState.timers.viralPulse = 0;
+    }, 720);
+    void fans;
+  }
+
+  function shipViralOrder() {
+    const snap = sealedFinishSnapshot();
+    const breakdown = calculateScoreBreakdown(snap);
+    applyRunRewards(breakdown);
+    noteViralShip(breakdown);
+    if (breakdown.perfect) {
+      spawnConfetti();
+      haptic(18);
+    } else {
+      haptic(10);
+    }
+    playSound(breakdown.perfect ? "perfect" : "shipped");
+    gameState.pendingResult = null;
+    hideFinishSequence();
+    showViralPulse(breakdown);
+    renderOrder();
+    paintViralBanner();
+    window.setTimeout(function () {
+      if (!isViralActive()) return;
+      nextOrder();
+    }, VIRAL_EVENT.BETWEEN_MS);
+  }
+
+  function endViralEvent() {
+    const session = gameState.viral;
+    if (!session || !session.active) return;
+    stopViralClock();
+    session.active = false;
+    gameState.packing = false;
+    gameState.lastViralAt = gameState.totalOrders;
+    const bonus = viralBonusCash(session);
+    gameState.cash = cents(gameState.cash + bonus);
+    hideResult();
+    hideFinishSequence();
+    if (dom.viralPulse) {
+      dom.viralPulse.classList.remove("is-on");
+      dom.viralPulse.hidden = true;
+    }
+    if (dom.viralRecapShipped) dom.viralRecapShipped.textContent = String(session.shipped);
+    if (dom.viralRecapPerfect) dom.viralRecapPerfect.textContent = String(session.perfect);
+    if (dom.viralRecapFollowers) {
+      const gained = session.followersGained;
+      dom.viralRecapFollowers.textContent = (gained >= 0 ? "+" : "") + gained.toLocaleString("en-US");
+    }
+    if (dom.viralRecapBonus) dom.viralRecapBonus.textContent = formatMoneyDelta(bonus);
+    enterDesk();
+    setOverlayOpen(dom.viralRecap, true);
+    playSound("viral");
+    haptic(20);
+    gameState.viral = session;
+    gameState.viral.active = false;
+    paintViralBanner();
+    renderCash();
+    renderShopStats();
+  }
+
+  function closeViralRecap() {
+    setOverlayOpen(dom.viralRecap, false);
+    gameState.viral = null;
+    paintViralBanner();
+    gameState.orderIndex += 1;
+    createOrder();
+    resetOrder();
+    enterDesk();
   }
 
   function renderRequestBlock() {
@@ -1486,6 +1867,7 @@
   }
 
   function enterDesk() {
+    if (isViralActive() && VIRAL_EVENT.AUTO_PACK) return;
     if (gameState.packing) return;
     if (gameState.drag) {
       const drag = gameState.drag;
@@ -1512,11 +1894,24 @@
     dom.packBtn.disabled = true;
     gameState.pendingResult = { ready: true };
     clearSelection();
+    if (isViralActive() && VIRAL_EVENT.SKIP_FINISH) {
+      shipViralOrder();
+      return;
+    }
     startFinishSequence();
   }
 
   function nextOrder() {
     hideResult();
+    closeShop();
+    if (gameState.viralPending) {
+      openViralSplash();
+      return;
+    }
+    if (isViralActive() && (gameState.viral.expired || viralTimeLeft() <= 0 || !viralHasQueue())) {
+      endViralEvent();
+      return;
+    }
     gameState.orderIndex += 1;
     createOrder();
     resetOrder();
@@ -1538,6 +1933,11 @@
     hideRequestToast();
     updatePackButton();
     startExpressTimer();
+    if (isViralActive() && VIRAL_EVENT.AUTO_PACK) {
+      setStage("packing");
+      scheduleFitBox();
+      return;
+    }
     enterDesk();
   }
 
@@ -2867,6 +3267,9 @@
     breakdown.levelInfo = levelInfo;
     breakdown.vipJustUnlocked = !!gameState.vipUnlockPending;
     if (gameState.vipUnlockPending) gameState.vipUnlockPending = false;
+    if (!isViralActive() && shouldOfferViralEvent()) {
+      gameState.viralPending = true;
+    }
     return levelInfo;
   }
 
@@ -3593,6 +3996,15 @@
         event.preventDefault();
         buyUpgrade(btn.getAttribute("data-upgrade"));
       });
+    }
+    if (dom.viralGo) {
+      dom.viralGo.addEventListener("click", acceptViralEvent);
+    }
+    if (dom.viralLater) {
+      dom.viralLater.addEventListener("click", declineViralEvent);
+    }
+    if (dom.viralRecapDone) {
+      dom.viralRecapDone.addEventListener("click", closeViralRecap);
     }
     if (dom.packSoundToggle) {
       dom.packSoundToggle.addEventListener("click", toggleSound);
@@ -4345,6 +4757,9 @@
     startExpressTimer();
     enterDesk();
     renderShop();
+    if (viralPreviewMode()) {
+      window.setTimeout(openViralSplash, 480);
+    }
   }
 
   // ===========================================================================
@@ -4373,6 +4788,7 @@
     scan: { src: null, synth: "scan" },
     shipped: { src: null, synth: "shipped" },
     review: { src: null, synth: "review" },
+    viral: { src: null, synth: "viral" },
   };
 
   function getAudioContext() {
@@ -4579,6 +4995,11 @@
       case "review":
         tone("sine", 784, 0.1, 0.045, null, 0);
         tone("triangle", 988, 0.16, 0.05, null, 0.08);
+        break;
+      case "viral":
+        tone("sine", 523, 0.1, 0.07, null, 0);
+        tone("triangle", 784, 0.14, 0.08, null, 0.08);
+        tone("sine", 1046, 0.22, 0.09, 1318, 0.18);
         break;
       default:
         tone("sine", 500, 0.12, 0.08, 400, 0);

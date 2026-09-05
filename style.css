@@ -144,10 +144,10 @@ ul {
   display: flex;
   align-items: stretch;
   justify-content: center;
-  gap: 8px;
+  gap: 4px;
   background: var(--paper);
   border-radius: 14px;
-  padding: 4px 10px 5px;
+  padding: 4px 6px 5px;
   box-shadow: var(--shadow-sm);
   border: 1px solid rgba(255, 255, 255, 0.7);
 }
@@ -159,7 +159,7 @@ ul {
 
 .shop-stat {
   text-align: center;
-  min-width: 36px;
+  min-width: 28px;
 }
 
 .shop-stat-label {
@@ -469,6 +469,200 @@ ul {
 
 .shop-entry-btn:active {
   transform: scale(0.98);
+}
+
+/* ——— Viral rush ——— */
+.viral-banner {
+  flex-shrink: 0;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #4a3428, #6b3d32);
+  color: #fff8ef;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  box-shadow: var(--shadow-sm);
+}
+
+#app.is-viral .viral-banner {
+  display: flex;
+  position: absolute;
+  top: calc(8px + var(--safe-top));
+  left: calc(12px + var(--safe-left));
+  right: calc(12px + var(--safe-right));
+  z-index: 8;
+}
+
+#app.is-viral[data-stage="packing"] .packing-stage {
+  padding-top: calc(50px + var(--safe-top));
+}
+
+#app.is-viral .desk-back {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.viral-banner[hidden] {
+  display: none !important;
+}
+
+.viral-banner-tag {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.viral-clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+}
+
+.viral-clock.is-late {
+  color: #ffd0c4;
+}
+
+.viral-overlay {
+  z-index: 125;
+  align-items: center;
+}
+
+.viral-sheet {
+  width: min(390px, 100%);
+  background: var(--paper);
+  border-radius: 28px;
+  padding: 22px 18px 18px;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(42, 33, 27, 0.28);
+  animation: sheetUp 0.32s cubic-bezier(0.2, 0.9, 0.24, 1);
+}
+
+.viral-emoji {
+  font-size: 42px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.viral-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+}
+
+.viral-sheet h2 {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  margin: 6px 0 14px;
+  line-height: 1.2;
+}
+
+.viral-burst {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.viral-burst li {
+  background: #f6ebdd;
+  border-radius: 16px;
+  padding: 10px 8px 9px;
+}
+
+.viral-burst strong {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--terracotta-deep);
+}
+
+.viral-burst span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.viral-lede {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  line-height: 1.35;
+  margin-bottom: 14px;
+}
+
+.viral-sheet .pack-btn {
+  margin-bottom: 8px;
+}
+
+.viral-recap-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 16px;
+}
+
+.viral-recap-stats li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f6ebdd;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.viral-recap-stats strong {
+  font-size: 18px;
+  color: var(--ink);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.viral-recap-stats .is-bonus {
+  background: #e4f0e7;
+}
+
+.viral-recap-stats .is-bonus strong {
+  color: #3d6b4f;
+}
+
+.viral-pulse {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  transform: translate(-50%, -8px);
+  z-index: 95;
+  min-width: 180px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: #4a3428;
+  color: #fff8ef;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: center;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.viral-pulse.is-on {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 /* ——— Order card ——— */

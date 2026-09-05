@@ -38,6 +38,10 @@
               <p class="shop-stat-label">Perfect</p>
               <p class="shop-stat-value" id="shop-perfects">0</p>
             </div>
+            <div class="shop-stat">
+              <p class="shop-stat-label">Followers</p>
+              <p class="shop-stat-value" id="shop-followers">0</p>
+            </div>
             <p id="shop-vip" class="shop-vip" hidden>VIP</p>
           </section>
         </div>
@@ -65,6 +69,12 @@
           </button>
         </div>
       </header>
+
+      <div id="viral-banner" class="viral-banner" hidden>
+        <span class="viral-banner-tag">📱 Viral</span>
+        <span id="viral-clock" class="viral-clock">4:00</span>
+        <span id="viral-shipped-line" class="viral-shipped-line">0 shipped</span>
+      </div>
 
       <section class="order-card" id="order-card" aria-live="polite">
         <div class="order-top">
@@ -261,6 +271,35 @@
           <ul id="shop-list" class="shop-list"></ul>
         </div>
       </div>
+      <div id="viral-splash" class="overlay viral-overlay" aria-hidden="true">
+        <div class="viral-sheet" role="dialog" aria-labelledby="viral-title" aria-modal="true">
+          <p class="viral-emoji" aria-hidden="true">📱</p>
+          <p class="viral-kicker">Trending</p>
+          <h2 id="viral-title">YOUR PACKING VIDEO WENT VIRAL!</h2>
+          <ul class="viral-burst">
+            <li><strong id="viral-burst-orders">+25</strong><span>Orders</span></li>
+            <li><strong id="viral-burst-followers">+850</strong><span>Followers</span></li>
+          </ul>
+          <p class="viral-lede">A short rush queue. Pack well — sloppy boxes still hit your rating.</p>
+          <button id="viral-go" class="pack-btn" type="button">GO LIVE</button>
+          <button id="viral-later" class="shop-entry-btn" type="button">Keep the cozy pace</button>
+        </div>
+      </div>
+
+      <div id="viral-recap" class="overlay viral-overlay" aria-hidden="true">
+        <div class="viral-sheet viral-recap-sheet" role="dialog" aria-labelledby="viral-recap-title" aria-modal="true">
+          <p class="viral-kicker">Rush over</p>
+          <h2 id="viral-recap-title">VIRAL WRAP</h2>
+          <ul class="viral-recap-stats">
+            <li><span>Orders shipped</span><strong id="viral-recap-shipped">0</strong></li>
+            <li><span>Perfect</span><strong id="viral-recap-perfect">0</strong></li>
+            <li><span>New followers</span><strong id="viral-recap-followers">+0</strong></li>
+            <li class="is-bonus"><span>Bonus</span><strong id="viral-recap-bonus">+$0</strong></li>
+          </ul>
+          <button id="viral-recap-done" class="pack-btn" type="button">BACK TO THE SHOP</button>
+        </div>
+      </div>
+      <div id="viral-pulse" class="viral-pulse" hidden role="status"></div>
       <div id="request-toast" class="request-toast" hidden role="status"></div>
     </div>
 
