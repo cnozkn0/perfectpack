@@ -4712,7 +4712,7 @@
       dom.finishStickerSpot.textContent = "";
     }
     if (dom.finishLabelSpot) {
-      dom.finishLabelSpot.classList.remove("is-on");
+      dom.finishLabelSpot.classList.remove("is-on", "is-target");
       dom.finishLabelSpot.innerHTML = "";
     }
     clearClass(dom.finishBarcode, "is-scanned");
@@ -4851,6 +4851,14 @@
     }
     if (dom.finishLabel) {
       dom.finishLabel.classList.toggle("is-hidden", id !== "label" || finish.labelPlaced);
+    }
+    if (dom.finishLabelSpot) {
+      const showTarget = id === "label" && !finish.labelPlaced;
+      dom.finishLabelSpot.classList.toggle("is-target", showTarget);
+      if (!finish.labelPlaced) {
+        dom.finishLabelSpot.classList.remove("is-on");
+        dom.finishLabelSpot.innerHTML = showTarget ? "<span>DROP</span>" : "";
+      }
     }
     if (dom.finishScanner) {
       dom.finishScanner.classList.toggle("is-hidden", id !== "scan" || finish.scanned);
@@ -5011,8 +5019,10 @@
     }
     const rect = prop.getBoundingClientRect();
     prop.classList.add("dragging");
+    prop.style.position = "fixed";
     prop.style.left = rect.left + "px";
     prop.style.top = rect.top + "px";
+    prop.style.zIndex = "90";
     finish.gesture = {
       type: "drag",
       pointerId: event.pointerId,
@@ -5152,18 +5162,27 @@
         return;
       }
       if (id === "label") {
-        const boost = upgradeEffect("labelSnapBoost", 1);
-        const target = dom.finishLabelSpot || dom.finishBox;
-        const hit = expandClientRect(target.getBoundingClientRect(), boost);
+        // Label spot is display:none until placed (0×0 rect). Always hit-test the box,
+        // with a generous pad + label-printer snap boost.
+        const boost = Math.max(upgradeEffect("labelSnapBoost", 1), 1.5);
+        const boxHit = expandClientRect(dom.finishBox.getBoundingClientRect(), boost);
+        // Also accept near-misses around the release point using the dragged prop rect.
         const overLabel =
-          clientPointInRect(event.clientX, event.clientY, hit) ||
-          clientRectsOverlap(propRect, hit);
+          overBox ||
+          clientPointInRect(event.clientX, event.clientY, boxHit) ||
+          clientRectsOverlap(propRect, boxHit);
         if (overLabel) {
           finish.labelPlaced = true;
           prop.classList.add("is-hidden");
-          dom.finishLabelSpot.classList.add("is-on");
-          dom.finishLabelSpot.innerHTML = "<span>SHIP TO</span><em>Cozy Shop</em>";
+          if (dom.finishLabelSpot) {
+            dom.finishLabelSpot.classList.remove("is-target");
+            dom.finishLabelSpot.classList.add("is-on");
+            dom.finishLabelSpot.innerHTML = "<span>SHIP TO</span><em>Cozy Shop</em>";
+          }
           succeedFinish("label");
+        } else {
+          playSound("error");
+          haptic(8);
         }
         return;
       }
