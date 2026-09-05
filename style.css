@@ -256,6 +256,221 @@ ul {
   transform: scale(0.96);
 }
 
+/* ——— Shop upgrades panel ——— */
+.shop-overlay {
+  z-index: 120;
+  align-items: flex-end;
+  touch-action: pan-y;
+}
+
+.shop-sheet {
+  width: min(390px, 100%);
+  max-height: min(92dvh, 760px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background:
+    radial-gradient(80% 40% at 50% 0%, #fff6ea 0%, transparent 55%),
+    var(--paper);
+  border-radius: 28px 28px 18px 18px;
+  padding: 14px 14px 22px;
+  box-shadow: 0 -8px 40px rgba(42, 33, 27, 0.2);
+  animation: sheetUp 0.32s cubic-bezier(0.2, 0.9, 0.24, 1);
+}
+
+.shop-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.shop-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.shop-head h2 {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.shop-cash {
+  background: #f6ebdd;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--shadow-sm);
+}
+
+.shop-lede {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  line-height: 1.35;
+  margin-bottom: 12px;
+}
+
+.shop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shop-card {
+  background: #fffaf3;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 18px;
+  padding: 12px 12px 11px;
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 8px 10px;
+}
+
+.shop-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #f3e6d6;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  grid-row: span 2;
+}
+
+.shop-card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.shop-card-name {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.shop-card-lv {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink-soft);
+  letter-spacing: 0.08em;
+}
+
+.shop-pips {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  grid-column: 2;
+}
+
+.shop-pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ead9c6;
+  box-shadow: inset 0 0 0 1px rgba(74, 52, 40, 0.08);
+}
+
+.shop-pip.is-on {
+  background: var(--gold);
+  box-shadow: 0 0 0 1px rgba(180, 120, 30, 0.25);
+}
+
+.shop-card-blurb {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+
+.shop-card-perk {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--sage);
+}
+
+.shop-buy {
+  grid-column: 1 / -1;
+  min-height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #e08162 0%, var(--terracotta) 100%);
+  color: #fff8ef;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  box-shadow: 0 5px 0 var(--terracotta-deep);
+}
+
+.shop-buy:not(:disabled):active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--terracotta-deep);
+}
+
+.shop-buy:disabled,
+.shop-card.is-locked .shop-buy {
+  background: linear-gradient(180deg, #d7c4b2, #cbb6a3);
+  box-shadow: 0 4px 0 #b49a86;
+  color: #f7efe6;
+}
+
+.shop-card.is-max .shop-buy {
+  background: linear-gradient(180deg, #8fb89a, var(--sage));
+  box-shadow: 0 4px 0 #4f7a5c;
+}
+
+.shop-card.is-broke {
+  animation: shopBroke 0.38s ease;
+}
+
+@keyframes shopBroke {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  50% {
+    transform: translateX(6px);
+  }
+  75% {
+    transform: translateX(-4px);
+  }
+}
+
+.shop-entry-btn {
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 8px;
+  border-radius: 14px;
+  background: #f6ebdd;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.shop-entry-btn:active {
+  transform: scale(0.98);
+}
+
 /* ——— Order card ——— */
 .order-card {
   background: var(--paper);

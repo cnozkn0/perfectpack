@@ -57,6 +57,150 @@
   };
 
   // ===========================================================================
+  // SHOP_UPGRADES
+  // levels[n] is the purchase that raises the upgrade TO level n+1.
+  // effects are cumulative for that owned level (not stacked deltas).
+  // Call sites read values only through upgradeEffect(key, fallback).
+  // ===========================================================================
+  const SHOP_UPGRADE_IDS = [
+    "packing_table",
+    "label_printer",
+    "tape_gun",
+    "scanner",
+    "material_storage",
+    "product_shelf",
+    "studio_decor",
+  ];
+
+  const SHOP_UPGRADES = {
+    packing_table: {
+      id: "packing_table",
+      name: "Packing Table",
+      icon: "🪵",
+      blurb: "A wider bench. The carton sits larger on the wood.",
+      levels: [
+        { cost: 35, perk: "Roomier table view", effects: { tableScale: 1.1 } },
+        { cost: 95, perk: "Box fills more of the bench", effects: { tableScale: 1.18 } },
+        { cost: 240, perk: "Broad studio table", effects: { tableScale: 1.26 } },
+        { cost: 520, perk: "Full-span packing desk", effects: { tableScale: 1.34 } },
+      ],
+    },
+    label_printer: {
+      id: "label_printer",
+      name: "Label Printer",
+      icon: "🖨️",
+      blurb: "Labels catch the lid from farther away.",
+      levels: [
+        { cost: 45, perk: "Magnet snap on the label spot", effects: { labelSnapBoost: 1.35 } },
+        { cost: 130, perk: "Wide catch zone", effects: { labelSnapBoost: 1.7 } },
+        { cost: 310, perk: "Labels almost jump onto the box", effects: { labelSnapBoost: 2.1 } },
+      ],
+    },
+    tape_gun: {
+      id: "tape_gun",
+      name: "Tape Gun",
+      icon: "📎",
+      blurb: "A proper dispenser. Less swipe to seal the seam.",
+      levels: [
+        { cost: 40, perk: "Shorter tape swipe", effects: { tapeEase: 1.35 } },
+        { cost: 120, perk: "Fast pull across the lid", effects: { tapeEase: 1.7 } },
+        { cost: 300, perk: "One smooth stroke", effects: { tapeEase: 2.2 } },
+      ],
+    },
+    scanner: {
+      id: "scanner",
+      name: "Scanner",
+      icon: "📟",
+      blurb: "Cleaner reads. Accuracy gets a small floor bump — it will not save a messy pack.",
+      levels: [
+        { cost: 50, perk: "+3 Accuracy", effects: { accuracyBonus: 3 } },
+        { cost: 140, perk: "+6 Accuracy", effects: { accuracyBonus: 6 } },
+        { cost: 320, perk: "+9 Accuracy", effects: { accuracyBonus: 9 } },
+        { cost: 600, perk: "+12 Accuracy", effects: { accuracyBonus: 12 } },
+      ],
+    },
+    material_storage: {
+      id: "material_storage",
+      name: "Material Storage",
+      icon: "🗃️",
+      blurb: "Bulk wrap. Tissue, bubble, paper, and foam cost less.",
+      levels: [
+        { cost: 55, perk: "10% off packing materials", effects: { materialCostMult: 0.9 } },
+        { cost: 150, perk: "20% off packing materials", effects: { materialCostMult: 0.8 } },
+        { cost: 340, perk: "30% off packing materials", effects: { materialCostMult: 0.7 } },
+        { cost: 640, perk: "40% off packing materials", effects: { materialCostMult: 0.6 } },
+      ],
+    },
+    product_shelf: {
+      id: "product_shelf",
+      name: "Product Shelf",
+      icon: "🪴",
+      blurb: "Stock more SKUs. New catalog items start showing up in orders.",
+      levels: [
+        { cost: 60, perk: "Unlocks perfume & notebooks", effects: { catalogTier: 1 } },
+        { cost: 180, perk: "Unlocks jewelry boxes", effects: { catalogTier: 2 } },
+        { cost: 400, perk: "Unlocks posters", effects: { catalogTier: 3 } },
+      ],
+    },
+    studio_decor: {
+      id: "studio_decor",
+      name: "Studio Decor",
+      icon: "🎀",
+      blurb: "A prettier bench. Presentation scores a little higher.",
+      levels: [
+        { cost: 30, perk: "+4 Aesthetic", effects: { aestheticBonus: 4 } },
+        { cost: 95, perk: "+8 Aesthetic", effects: { aestheticBonus: 8 } },
+        { cost: 240, perk: "+12 Aesthetic", effects: { aestheticBonus: 12 } },
+        { cost: 520, perk: "+16 Aesthetic", effects: { aestheticBonus: 16 } },
+      ],
+    },
+  };
+
+  const UPGRADE_EFFECT_DEFAULTS = {
+    tableScale: 1,
+    labelSnapBoost: 1,
+    tapeEase: 1,
+    accuracyBonus: 0,
+    materialCostMult: 1,
+    catalogTier: 0,
+    aestheticBonus: 0,
+  };
+
+  function emptyUpgrades() {
+    const out = {};
+    SHOP_UPGRADE_IDS.forEach(function (id) {
+      out[id] = 0;
+    });
+    return out;
+  }
+
+  function upgradeLevel(id) {
+    return (gameState.upgrades && gameState.upgrades[id]) || 0;
+  }
+
+  function upgradeEffects() {
+    const out = Object.assign({}, UPGRADE_EFFECT_DEFAULTS);
+    SHOP_UPGRADE_IDS.forEach(function (id) {
+      const spec = SHOP_UPGRADES[id];
+      const lv = upgradeLevel(id);
+      if (!spec || lv <= 0) return;
+      const row = spec.levels[lv - 1];
+      const effects = row && row.effects;
+      if (!effects) return;
+      Object.keys(effects).forEach(function (key) {
+        out[key] = effects[key];
+      });
+    });
+    return out;
+  }
+
+  function upgradeEffect(key, fallback) {
+    const effects = upgradeEffects();
+    if (Object.prototype.hasOwnProperty.call(effects, key)) return effects[key];
+    return fallback;
+  }
+
+  // ===========================================================================
   // PRODUCT_TYPES
   // Booleans default false. Instance state (protection, compress) lives on
   // each spawned product, not on the type.
@@ -112,6 +256,7 @@
       weight: 0.35,
       salePrice: 36,
       productCost: 14,
+      unlockTier: 1,
     }),
     notebook: productType({
       id: "notebook",
@@ -123,6 +268,7 @@
       weight: 0.5,
       salePrice: 16,
       productCost: 6,
+      unlockTier: 1,
     }),
     socks: productType({
       id: "socks",
@@ -146,6 +292,7 @@
       weight: 0.2,
       salePrice: 48,
       productCost: 18,
+      unlockTier: 2,
     }),
     poster: productType({
       id: "poster",
@@ -157,6 +304,7 @@
       weight: 0.12,
       salePrice: 14,
       productCost: 4,
+      unlockTier: 3,
     }),
   };
 
@@ -173,6 +321,7 @@
         weight: 0.3,
         salePrice: 12,
         productCost: 4,
+        unlockTier: 0,
       },
       spec
     );
@@ -591,6 +740,7 @@
     expressDeadline: 0,
     expressFailed: false,
     stage: "desk",
+    upgrades: emptyUpgrades(),
     timers: {
       reject: 0,
       snap: 0,
@@ -619,6 +769,12 @@
     dom.shopVip = $("shop-vip");
     dom.soundToggle = $("sound-toggle");
     dom.soundIcon = $("sound-icon");
+    dom.shopBtn = $("shop-btn");
+    dom.shopOverlay = $("shop-overlay");
+    dom.shopList = $("shop-list");
+    dom.shopCash = $("shop-cash");
+    dom.shopClose = $("shop-close");
+    dom.shopOpenResult = $("shop-open-result");
     dom.orderTitle = $("order-title");
     dom.orderCount = $("order-count");
     dom.orderItems = $("order-items");
@@ -996,14 +1152,34 @@
   // ===========================================================================
   // ORDER FUNCTIONS
   // ===========================================================================
+  function orderUnlocked(template) {
+    const tier = upgradeEffect("catalogTier", 0);
+    return Object.keys(template.items).every(function (id) {
+      const type = PRODUCT_TYPES[id];
+      return ((type && type.unlockTier) || 0) <= tier;
+    });
+  }
+
+  function pickOrderTemplate() {
+    const n = ORDERS.length;
+    for (let i = 0; i < n; i += 1) {
+      const idx = (gameState.orderIndex + i) % n;
+      if (orderUnlocked(ORDERS[idx])) {
+        gameState.orderIndex = idx;
+        return ORDERS[idx];
+      }
+    }
+    return ORDERS[gameState.orderIndex % n];
+  }
+
   function createOrder() {
-    const template = ORDERS[gameState.orderIndex % ORDERS.length];
+    const template = pickOrderTemplate();
     const idealBox = template.idealBox || "medium";
     // VIP catalog hook: when shouldOfferVipOrder() is true, future VIP_ORDERS
     // can replace `template`. For now the flag rides on the same SKUs.
     gameState.currentOrder = {
       id: template.id,
-      number: gameState.orderIndex + 1,
+      number: gameState.totalOrders + 1,
       items: Object.assign({}, template.items),
       idealBox: idealBox,
       request: template.request || null,
@@ -1046,7 +1222,8 @@
     const availW = Math.max(120, surface.clientWidth - 16);
     const availH = Math.max(120, surface.clientHeight - 16);
     let scale = Math.min(availW / outerW, availH / outerH);
-    scale = clamp(Number.isFinite(scale) ? scale : 1, 0.78, 1.75);
+    const tableBoost = upgradeEffect("tableScale", 1);
+    scale = clamp(Number.isFinite(scale) ? scale : 1, 0.78, 1.75 * tableBoost);
     dom.box.style.transform = "scale(" + scale + ")";
     dom.box.style.transformOrigin = "center center";
   }
@@ -1135,12 +1312,18 @@
     renderShopStats();
     scheduleFitBox();
 
-    dom.cashValue.textContent = formatMoney(gameState.cash);
+    renderCash();
     const progress = levelProgress(gameState.xp);
     if (dom.levelValue) {
       dom.levelValue.textContent = "Lv " + progress.level;
     }
     dom.xpValue.textContent = progress.into + "/" + progress.need;
+  }
+
+  function renderCash() {
+    const text = formatMoney(gameState.cash);
+    if (dom.cashValue) dom.cashValue.textContent = text;
+    if (dom.shopCash) dom.shopCash.textContent = text;
   }
 
   function renderShopStats() {
@@ -1159,6 +1342,97 @@
     if (dom.shopVip) {
       dom.shopVip.hidden = !gameState.vipUnlocked;
     }
+  }
+
+  function openShop() {
+    if (gameState.finish && gameState.finish.active && !gameState.finish.completed) return;
+    if (gameState.drag) return;
+    renderShop();
+    setOverlayOpen(dom.shopOverlay, true);
+    playSound("place");
+  }
+
+  function closeShop() {
+    setOverlayOpen(dom.shopOverlay, false);
+  }
+
+  function renderShop() {
+    if (!dom.shopList) return;
+    renderCash();
+    dom.shopList.innerHTML = "";
+    SHOP_UPGRADE_IDS.forEach(function (id) {
+      const spec = SHOP_UPGRADES[id];
+      const lv = upgradeLevel(id);
+      const max = spec.levels.length;
+      const next = spec.levels[lv];
+      const owned = lv ? spec.levels[lv - 1] : null;
+      const li = document.createElement("li");
+      const canBuy = !!(next && gameState.cash + 1e-9 >= next.cost);
+      li.className =
+        "shop-card" + (lv >= max ? " is-max" : "") + (next && !canBuy ? " is-locked" : "");
+      li.setAttribute("data-upgrade", id);
+
+      let pips = "";
+      for (let i = 0; i < max; i += 1) {
+        pips += '<span class="shop-pip' + (i < lv ? " is-on" : "") + '"></span>';
+      }
+
+      const perk = next ? "Next · " + next.perk : owned ? "Max · " + owned.perk : spec.blurb;
+      const btnLabel = next
+        ? "LV" + (lv + 1) + "  " + formatMoney(next.cost)
+        : "MAXED";
+
+      li.innerHTML =
+        '<div class="shop-card-icon" aria-hidden="true">' +
+        spec.icon +
+        '</div><div class="shop-card-top"><p class="shop-card-name">' +
+        spec.name +
+        '</p><span class="shop-card-lv">LV ' +
+        lv +
+        "/" +
+        max +
+        '</span></div><div class="shop-pips" aria-hidden="true">' +
+        pips +
+        '</div><p class="shop-card-blurb">' +
+        spec.blurb +
+        '</p><p class="shop-card-perk">' +
+        perk +
+        '</p><button class="shop-buy" type="button" data-upgrade="' +
+        id +
+        '"' +
+        (next ? "" : " disabled") +
+        ">" +
+        btnLabel +
+        "</button>";
+      dom.shopList.appendChild(li);
+    });
+  }
+
+  function buyUpgrade(id) {
+    const spec = SHOP_UPGRADES[id];
+    if (!spec) return;
+    const lv = upgradeLevel(id);
+    const next = spec.levels[lv];
+    const card = dom.shopList && dom.shopList.querySelector('[data-upgrade="' + id + '"]');
+    if (!next) return;
+    if (gameState.cash + 1e-9 < next.cost) {
+      playSound("error");
+      haptic(10);
+      showRequestToast("Not enough cash");
+      if (card) {
+        card.classList.remove("is-broke");
+        void card.offsetWidth;
+        card.classList.add("is-broke");
+      }
+      return;
+    }
+    gameState.cash = cents(gameState.cash - next.cost);
+    gameState.upgrades[id] = lv + 1;
+    playSound("complete");
+    haptic(12);
+    renderShop();
+    renderCash();
+    scheduleFitBox();
   }
 
   function renderRequestBlock() {
@@ -1202,6 +1476,7 @@
 
   function enterPacking() {
     if (gameState.packing) return;
+    closeShop();
     unlockAudio();
     setStage("packing");
     playSound("place");
@@ -1436,10 +1711,15 @@
     }, 0);
   }
 
+  function materialUnitCost(mat) {
+    if (!mat) return 0;
+    return mat.cost * upgradeEffect("materialCostMult", 1);
+  }
+
   function sumWrapCost(product) {
     return (product.wraps || []).reduce(function (sum, id) {
       const mat = PROTECTION_MATERIALS[id];
-      return sum + (mat ? mat.cost : 0);
+      return sum + materialUnitCost(mat);
     }, 0);
   }
 
@@ -2393,6 +2673,9 @@
       aesthetic = roundScore(aesthetic + 12);
     }
 
+    accuracy = roundScore(clamp(accuracy + upgradeEffect("accuracyBonus", 0), 0, 100));
+    aesthetic = roundScore(clamp(aesthetic + upgradeEffect("aestheticBonus", 0), 0, 100));
+
     const categories = {
       accuracy: accuracy,
       fit: fitInfo.score,
@@ -2761,7 +3044,7 @@
       }
       if (depth >= CONFIG.MAX_WRAPS || cost >= best) return;
       for (let i = 0; i < mats.length; i += 1) {
-        search(got + mats[i].protection, cost + mats[i].cost, depth + 1);
+        search(got + mats[i].protection, cost + materialUnitCost(mats[i]), depth + 1);
       }
     }
     search(0, 0, 0);
@@ -2956,7 +3239,7 @@
           '</span><span class="wrap-choice-meta">+' +
           mat.protection +
           " · $" +
-          mat.cost.toFixed(2) +
+          materialUnitCost(mat).toFixed(2) +
           "</span>";
         dom.wrapOptions.appendChild(btn);
       });
@@ -2972,6 +3255,10 @@
       btn.classList.toggle("is-on", !!counts[id]);
       btn.classList.toggle("is-banned", !!(req && req.banPlastic && mat && mat.plastic));
       btn.classList.toggle("is-eco-pick", !!(req && req.paperBonus && id === "paper_fill"));
+      const meta = btn.querySelector(".wrap-choice-meta");
+      if (meta && mat) {
+        meta.textContent = "+" + mat.protection + " · $" + materialUnitCost(mat).toFixed(2);
+      }
     });
     if (dom.unwrapBtn) {
       dom.unwrapBtn.disabled = !(product.wraps && product.wraps.length);
@@ -3285,6 +3572,28 @@
 
   function bindUi() {
     dom.soundToggle.addEventListener("click", toggleSound);
+    if (dom.shopBtn) {
+      dom.shopBtn.addEventListener("click", openShop);
+    }
+    if (dom.shopClose) {
+      dom.shopClose.addEventListener("click", closeShop);
+    }
+    if (dom.shopOpenResult) {
+      dom.shopOpenResult.addEventListener("click", openShop);
+    }
+    if (dom.shopOverlay) {
+      dom.shopOverlay.addEventListener("pointerup", function (event) {
+        if (event.target === dom.shopOverlay) closeShop();
+      });
+    }
+    if (dom.shopList) {
+      dom.shopList.addEventListener("pointerup", function (event) {
+        const btn = event.target.closest("[data-upgrade].shop-buy");
+        if (!btn || btn.disabled) return;
+        event.preventDefault();
+        buyUpgrade(btn.getAttribute("data-upgrade"));
+      });
+    }
     if (dom.packSoundToggle) {
       dom.packSoundToggle.addEventListener("click", toggleSound);
     }
@@ -3378,6 +3687,9 @@
     document.addEventListener(
       "touchmove",
       function (event) {
+        if (event.target.closest && event.target.closest("#shop-overlay.is-open")) {
+          return;
+        }
         event.preventDefault();
       },
       { passive: false }
@@ -3844,7 +4156,8 @@
 
     if (g.type === "tape") {
       const dx = event.clientX - g.startX;
-      const progress = clamp(g.startProgress + dx / g.boxWidth, 0, 1);
+      const ease = upgradeEffect("tapeEase", 1);
+      const progress = clamp(g.startProgress + dx / (g.boxWidth / ease), 0, 1);
       finish.tape = progress;
       dom.finishTape.classList.add("is-on");
       dom.finishTape.style.right = 100 - progress * 92 + "%";
@@ -3937,18 +4250,44 @@
         succeedFinish("sticker");
         return;
       }
-      if (id === "label" && overBox) {
-        finish.labelPlaced = true;
-        prop.classList.add("is-hidden");
-        dom.finishLabelSpot.classList.add("is-on");
-        dom.finishLabelSpot.innerHTML = "<span>SHIP TO</span><em>Cozy Shop</em>";
-        succeedFinish("label");
+      if (id === "label") {
+        const boost = upgradeEffect("labelSnapBoost", 1);
+        const target = dom.finishLabelSpot || dom.finishBox;
+        const hit = expandClientRect(target.getBoundingClientRect(), boost);
+        const overLabel =
+          clientPointInRect(event.clientX, event.clientY, hit) ||
+          clientRectsOverlap(propRect, hit);
+        if (overLabel) {
+          finish.labelPlaced = true;
+          prop.classList.add("is-hidden");
+          dom.finishLabelSpot.classList.add("is-on");
+          dom.finishLabelSpot.innerHTML = "<span>SHIP TO</span><em>Cozy Shop</em>";
+          succeedFinish("label");
+        }
         return;
       }
     }
   }
 
   function domRectsOverlap(a, b) {
+    return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+  }
+
+  function expandClientRect(r, boost) {
+    const pad = Math.max(0, (boost - 1) * 36);
+    return {
+      left: r.left - pad,
+      right: r.right + pad,
+      top: r.top - pad,
+      bottom: r.bottom + pad,
+    };
+  }
+
+  function clientPointInRect(x, y, r) {
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  }
+
+  function clientRectsOverlap(a, b) {
     return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
   }
 
@@ -4005,6 +4344,7 @@
     updatePackButton();
     startExpressTimer();
     enterDesk();
+    renderShop();
   }
 
   // ===========================================================================
