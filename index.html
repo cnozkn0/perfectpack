@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="light only" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#EED9C4" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>Perfect Pack</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app" data-stage="desk" data-box="kraft" data-tissue="plain" data-sticker="default" data-tape="clear" data-table="wood" data-background="bedroom">
+      <div id="float-layer" class="float-layer" aria-hidden="true"></div>
+      <header class="hud" aria-label="Status">
+        <div class="hud-top">
+          <div class="hud-chip" id="cash-chip" title="Cash">
+            <span class="hud-icon" aria-hidden="true">💵</span>
+            <span id="cash-value">$100.00</span>
+          </div>
+          <div class="hud-right">
+            <div class="hud-chip hud-xp" title="Level and XP">
+              <span id="level-value">Lv 1</span>
+              <div class="xp-track" aria-hidden="true">
+                <i id="xp-bar"></i>
+              </div>
+              <span id="xp-value">0/100</span>
+            </div>
+            <button
+              id="shop-btn"
+              class="icon-btn"
+              type="button"
+              aria-label="Shop upgrades"
+            >
+              <span aria-hidden="true">🏪</span>
+            </button>
+            <button
+              id="settings-btn"
+              class="icon-btn"
+              type="button"
+              aria-label="Settings"
+            >
+              <span aria-hidden="true">⚙️</span>
+            </button>
+            <button
+              id="sound-toggle"
+              class="icon-btn"
+              type="button"
+              aria-label="Mute sound"
+              aria-pressed="false"
+            >
+              <span id="sound-icon" aria-hidden="true">🔊</span>
+            </button>
+          </div>
+        </div>
+        <section class="shop-stats" id="shop-stats" aria-label="Shop stats">
+          <div class="shop-stat">
+            <p class="shop-stat-label">Rating</p>
+            <p class="shop-stat-value"><span id="shop-rating">5.0</span>★</p>
+          </div>
+          <div class="shop-stat">
+            <p class="shop-stat-label">Orders</p>
+            <p class="shop-stat-value" id="shop-orders">0</p>
+          </div>
+          <div class="shop-stat">
+            <p class="shop-stat-label">Perfect</p>
+            <p class="shop-stat-value" id="shop-perfects">0</p>
+          </div>
+          <div class="shop-stat">
+            <p class="shop-stat-label">Followers</p>
+            <p class="shop-stat-value" id="shop-followers">0</p>
+          </div>
+          <p id="shop-vip" class="shop-vip" hidden>VIP</p>
+        </section>
+      </header>
+
+      <div id="viral-banner" class="viral-banner" hidden>
+        <span class="viral-banner-tag">📱 Viral</span>
+        <span id="viral-clock" class="viral-clock">4:00</span>
+        <span id="viral-shipped-line" class="viral-shipped-line">0 shipped</span>
+      </div>
+
+      <section class="order-card" id="order-card" aria-live="polite">
+        <div class="order-ticket-rail" aria-hidden="true"></div>
+        <div class="order-top">
+          <h1 id="order-title">ORDER #001</h1>
+          <span class="order-count" id="order-count">2 items</span>
+          <button id="daily-chip" class="daily-chip" type="button" aria-label="Daily challenge">
+            <span class="daily-chip-tag">DAILY</span>
+            <span id="daily-chip-progress">0 / 3</span>
+          </button>
+        </div>
+        <ul class="order-items" id="order-items"></ul>
+        <div id="order-request" class="order-request" hidden>
+          <p class="request-kicker">Special request</p>
+          <p id="request-title" class="request-title"></p>
+          <p id="request-quote" class="request-quote"></p>
+          <p id="request-timer" class="request-timer" hidden></p>
+        </div>
+      </section>
+
+      <div
+        class="box-picker"
+        id="box-picker"
+        role="radiogroup"
+        aria-label="Choose a box"
+      ></div>
+
+      <div class="desk-preview" aria-hidden="true">
+        <span id="desk-preview-label">Choose a box, then start packing</span>
+      </div>
+
+      <button id="start-pack-btn" class="pack-btn start-pack-btn" type="button">
+        START PACKING
+      </button>
+
+      <section id="packing-stage" class="packing-stage" aria-hidden="true">
+        <header class="pack-hud">
+          <button id="desk-back" class="desk-back" type="button">← Order</button>
+          <div class="pack-hud-mid">
+            <p id="pack-title">ORDER #001</p>
+            <p id="pack-request-line" class="pack-request-line" hidden></p>
+          </div>
+          <p id="pack-timer" class="request-timer" hidden></p>
+          <button
+            id="pack-sound-toggle"
+            class="icon-btn"
+            type="button"
+            aria-label="Mute sound"
+            aria-pressed="false"
+          >
+            <span id="pack-sound-icon" aria-hidden="true">🔊</span>
+          </button>
+        </header>
+        <ul class="order-items pack-items" id="pack-items"></ul>
+        <section class="table" aria-label="Packing table">
+        <div class="table-surface">
+          <div class="box is-open" id="box" data-size="medium">
+            <div class="box-3d" aria-hidden="true">
+              <div class="box-flap box-flap-back"></div>
+              <div class="box-flap box-flap-left"></div>
+              <div class="box-flap box-flap-right"></div>
+              <div class="box-flap box-flap-front">
+                <span class="box-size-tag" id="box-size-tag">M</span>
+              </div>
+              <div class="box-wall box-wall-back"></div>
+              <div class="box-wall box-wall-left"></div>
+              <div class="box-wall box-wall-right"></div>
+              <div class="box-wall box-wall-front"></div>
+              <div class="box-wall box-wall-bottom"></div>
+            </div>
+            <div class="box-frame">
+              <div
+                class="pack-area"
+                id="pack-area"
+                role="application"
+                aria-label="Cardboard box packing area"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="dock">
+        <p class="shelf-hint" id="shelf-hint">Drag or tap twice to pack</p>
+        <div class="shelf" id="shelf" aria-label="Product shelf"></div>
+        <div id="wrap-tray" class="wrap-tray hidden" hidden>
+          <div class="wrap-tray-head">
+            <p class="wrap-tray-label" id="wrap-tray-label">WRAP</p>
+            <span class="wrap-tray-stat" id="wrap-tray-stat"></span>
+          </div>
+          <div id="wrap-targets" class="wrap-targets" hidden></div>
+          <div class="wrap-options" id="wrap-options"></div>
+          <button id="unwrap-btn" class="unwrap-btn" type="button">UNWRAP</button>
+        </div>
+        <button id="pack-btn" class="pack-btn" type="button" disabled>
+          PACK ORDER
+        </button>
+      </section>
+      </section>
+
+      <div id="finish-overlay" class="finish-overlay" data-step="tissue" aria-hidden="true">
+        <div class="finish-stage">
+          <p class="finish-kicker" id="finish-kicker">Seal the box</p>
+          <div class="finish-rail" id="finish-rail" aria-label="Packing finish steps">
+            <span data-finish="tissue">Tissue</span>
+            <span data-finish="card">Card</span>
+            <span data-finish="close">Close</span>
+            <span data-finish="sticker">Sticker</span>
+            <span data-finish="tape">Tape</span>
+            <span data-finish="label">Label</span>
+            <span data-finish="scan">Scan</span>
+            <span data-finish="shipped">Ship</span>
+          </div>
+          <p class="finish-count" id="finish-step">01 / 08</p>
+          <h2 id="finish-title">Tissue Paper</h2>
+          <p class="finish-hint" id="finish-hint">Swipe down to tuck the tissue</p>
+          <button type="button" id="finish-skip" class="finish-skip" hidden>Skip</button>
+
+          <div class="finish-box" id="finish-box">
+            <span class="finish-swipe-cue" id="finish-swipe-cue" aria-hidden="true">↓</span>
+            <div class="finish-flap finish-flap-l" id="finish-flap-l"></div>
+            <div class="finish-flap finish-flap-r" id="finish-flap-r"></div>
+            <div class="finish-lid" id="finish-lid">
+              <span class="finish-box-tag" id="finish-box-tag">M</span>
+            </div>
+            <div class="finish-cavity" id="finish-cavity">
+              <div class="finish-goods" aria-hidden="true"></div>
+              <div class="finish-tissue" id="finish-tissue"></div>
+              <div class="finish-card-slot" id="finish-card-slot"></div>
+            </div>
+            <div class="finish-tape" id="finish-tape"></div>
+            <div class="finish-sticker-spot" id="finish-sticker-spot"></div>
+            <div class="finish-label-spot" id="finish-label-spot"></div>
+            <div class="finish-barcode" id="finish-barcode" aria-label="Barcode">
+              <span class="finish-scan-flash" id="finish-scan-flash" aria-hidden="true"></span>
+            </div>
+            <div class="finish-shipped" id="finish-shipped">
+              <strong>SHIPPED</strong>
+              <span>✓</span>
+            </div>
+          </div>
+
+          <div class="finish-props" id="finish-props">
+            <div class="finish-prop finish-card is-hidden" id="finish-card" aria-label="Thank you card">
+              <span id="finish-card-text">Thank you</span>
+            </div>
+            <div class="finish-prop finish-sticker is-hidden" id="finish-sticker" aria-label="Shop sticker">
+              <span>PP</span>
+            </div>
+            <div class="finish-prop finish-label is-hidden" id="finish-label" aria-label="Shipping label">
+              <span>SHIP TO</span>
+              <em>Cozy Shop</em>
+            </div>
+            <div class="finish-label-printer" id="finish-label-printer" hidden aria-hidden="true">
+              <span class="finish-printer-body"></span>
+              <span class="finish-printer-slot"></span>
+              <span class="finish-printer-paper"></span>
+              <span class="finish-printer-label">PRINT</span>
+            </div>
+            <div class="finish-prop finish-scanner is-hidden" id="finish-scanner" aria-label="Barcode scanner">
+              <span>SCAN</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="result-overlay" class="overlay" aria-hidden="true">
+        <aside id="review-toast" class="review-toast" hidden role="status">
+          <p class="review-kicker">New review</p>
+          <div class="review-head">
+            <strong id="review-author">A customer</strong>
+            <span id="review-stars" class="review-stars" aria-label="5 stars">★★★★★</span>
+          </div>
+          <p id="review-quote" class="review-quote"></p>
+          <p id="review-vip-note" class="review-vip-note" hidden>VIP customers unlocked</p>
+        </aside>
+        <div class="result-sheet" role="dialog" aria-labelledby="result-title" aria-modal="true">
+          <p class="result-kicker" id="result-kicker">Order packed</p>
+          <p id="result-request" class="result-request" hidden></p>
+          <h2 id="result-title">GREAT PACK</h2>
+          <div class="score-ring" id="score-ring">
+            <strong id="result-score">0</strong>
+            <span>Pack Score</span>
+          </div>
+          <ul class="score-cats" id="score-cats" aria-label="Category scores"></ul>
+          <ul class="result-badges" id="result-badges" hidden></ul>
+          <ul class="ledger" id="result-ledger" aria-label="Order P&L"></ul>
+          <ul class="rewards">
+            <li>
+              <span>XP</span>
+              <strong id="result-xp">+0</strong>
+            </li>
+            <li id="result-level-up" class="bonus hidden" hidden>
+              <span>Level up</span>
+              <strong>LEVEL 2</strong>
+            </li>
+          </ul>
+          <button id="shop-open-result" class="shop-entry-btn" type="button">
+            SHOP UPGRADES
+          </button>
+          <button id="next-btn" class="pack-btn next-btn" type="button">NEXT ORDER</button>
+        </div>
+      </div>
+      <div id="settings-overlay" class="overlay settings-overlay" aria-hidden="true">
+        <div class="settings-sheet" role="dialog" aria-labelledby="settings-title" aria-modal="true">
+          <header class="settings-head">
+            <div>
+              <p class="settings-kicker">Studio</p>
+              <h2 id="settings-title">Settings</h2>
+            </div>
+            <button id="settings-close" class="icon-btn" type="button" aria-label="Close settings">
+              ✕
+            </button>
+          </header>
+          <ul class="settings-list">
+            <li class="settings-row">
+              <div class="settings-copy">
+                <strong>Sound</strong>
+                <span>Packing taps, seals, and soft feedback</span>
+              </div>
+              <button
+                id="settings-sound-toggle"
+                class="settings-toggle"
+                type="button"
+                aria-pressed="true"
+              >
+                <span id="settings-sound-value">On</span>
+              </button>
+            </li>
+            <li class="settings-row">
+              <div class="settings-copy">
+                <strong>ASMR Mode</strong>
+                <span>Packing sounds forward, quieter UI (music stays off)</span>
+              </div>
+              <button
+                id="settings-asmr-toggle"
+                class="settings-toggle"
+                type="button"
+                aria-pressed="false"
+              >
+                <span id="settings-asmr-value">Off</span>
+              </button>
+            </li>
+            <li class="settings-row settings-row-danger">
+              <div class="settings-copy">
+                <strong>Reset Progress</strong>
+                <span>Clears cash, upgrades, cosmetics, and stats</span>
+              </div>
+              <button id="settings-reset-btn" class="settings-reset-btn" type="button">
+                Reset
+              </button>
+            </li>
+          </ul>
+          <div id="settings-reset-confirm" class="settings-reset-confirm" hidden>
+            <p class="settings-reset-prompt">RESET ALL PROGRESS?</p>
+            <div class="settings-reset-actions">
+              <button id="settings-reset-cancel" class="shop-entry-btn" type="button">Cancel</button>
+              <button id="settings-reset-confirm-btn" class="pack-btn settings-reset-confirm-btn" type="button">
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="shop-overlay" class="overlay shop-overlay" aria-hidden="true">
+        <div class="shop-sheet" role="dialog" aria-labelledby="shop-title" aria-modal="true">
+          <header class="shop-head">
+            <div class="shop-head-copy">
+              <p class="shop-kicker">Studio</p>
+              <h2 id="shop-title">Shop</h2>
+            </div>
+            <p class="shop-cash" id="shop-cash">$100.00</p>
+            <button id="shop-close" class="icon-btn" type="button" aria-label="Close shop">
+              ✕
+            </button>
+          </header>
+          <div class="shop-tabs" role="tablist" aria-label="Shop sections">
+            <button
+              id="shop-tab-upgrades"
+              class="shop-tab is-on"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              data-shop-tab="upgrades"
+            >
+              UPGRADES
+            </button>
+            <button
+              id="shop-tab-style"
+              class="shop-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-shop-tab="style"
+            >
+              STYLE
+            </button>
+          </div>
+          <div id="shop-panel-upgrades" class="shop-panel is-on" data-shop-panel="upgrades">
+            <p class="shop-lede">
+              Spend profits on better tools. A sloppy pack still scores like a sloppy pack.
+            </p>
+            <ul id="shop-list" class="shop-list"></ul>
+          </div>
+          <div id="shop-panel-style" class="shop-panel" data-shop-panel="style" hidden>
+            <p class="shop-lede">
+              Dress the studio. Cosmetics change the look — not the score.
+            </p>
+            <div id="style-filters" class="style-filters" role="tablist" aria-label="Cosmetic categories">
+              <button class="style-filter is-on" type="button" data-style-cat="all">All</button>
+              <button class="style-filter" type="button" data-style-cat="box">Box</button>
+              <button class="style-filter" type="button" data-style-cat="tissue">Tissue</button>
+              <button class="style-filter" type="button" data-style-cat="sticker">Sticker</button>
+              <button class="style-filter" type="button" data-style-cat="tape">Tape</button>
+              <button class="style-filter" type="button" data-style-cat="table">Table</button>
+              <button class="style-filter" type="button" data-style-cat="background">Studio</button>
+            </div>
+            <ul id="style-list" class="style-list"></ul>
+          </div>
+        </div>
+      </div>
+      <div id="viral-splash" class="overlay viral-overlay" aria-hidden="true">
+        <div class="viral-sheet" role="dialog" aria-labelledby="viral-title" aria-modal="true">
+          <p class="viral-emoji" aria-hidden="true">📱</p>
+          <p class="viral-kicker">Trending</p>
+          <h2 id="viral-title">YOUR PACKING VIDEO WENT VIRAL!</h2>
+          <ul class="viral-burst">
+            <li><strong id="viral-burst-orders">+25</strong><span>Orders</span></li>
+            <li><strong id="viral-burst-followers">+850</strong><span>Followers</span></li>
+          </ul>
+          <p class="viral-lede">A short rush queue. Pack well — sloppy boxes still hit your rating.</p>
+          <button id="viral-go" class="pack-btn" type="button">GO LIVE</button>
+          <button id="viral-later" class="shop-entry-btn" type="button">Keep the cozy pace</button>
+        </div>
+      </div>
+
+      <div id="viral-recap" class="overlay viral-overlay" aria-hidden="true">
+        <div class="viral-sheet viral-recap-sheet" role="dialog" aria-labelledby="viral-recap-title" aria-modal="true">
+          <p class="viral-kicker">Rush over</p>
+          <h2 id="viral-recap-title">VIRAL WRAP</h2>
+          <ul class="viral-recap-stats">
+            <li><span>Orders shipped</span><strong id="viral-recap-shipped">0</strong></li>
+            <li><span>Perfect</span><strong id="viral-recap-perfect">0</strong></li>
+            <li><span>New followers</span><strong id="viral-recap-followers">+0</strong></li>
+            <li class="is-bonus"><span>Bonus</span><strong id="viral-recap-bonus">+$0</strong></li>
+          </ul>
+          <button id="viral-recap-done" class="pack-btn" type="button">BACK TO THE SHOP</button>
+        </div>
+      </div>
+      <div id="viral-pulse" class="viral-pulse" hidden role="status"></div>
+      <div id="request-toast" class="request-toast" hidden role="status"></div>
+
+      <div id="return-toast" class="return-toast" hidden role="status">
+        <p class="return-toast-kicker">📦 Return received</p>
+        <p id="return-toast-quote" class="return-toast-quote">"My order arrived damaged."</p>
+        <p id="return-toast-meta" class="return-toast-meta">Order #001</p>
+        <button id="return-toast-open" class="return-toast-open" type="button">
+          OPEN RETURN
+        </button>
+      </div>
+
+      <div id="return-overlay" class="overlay return-overlay" aria-hidden="true">
+        <div class="return-sheet" role="dialog" aria-labelledby="return-title" aria-modal="true">
+          <header class="return-head">
+            <div>
+              <p class="return-kicker">Inspection</p>
+              <h2 id="return-title">Return</h2>
+            </div>
+            <button id="return-close" class="icon-btn" type="button" aria-label="Close return">
+              ✕
+            </button>
+          </header>
+          <p id="return-quote" class="return-quote">"My order arrived damaged."</p>
+          <div class="return-item">
+            <span id="return-item-icon" class="return-item-icon" aria-hidden="true">📦</span>
+            <div>
+              <p class="return-label">Item</p>
+              <p id="return-item-name" class="return-item-name">Mug</p>
+            </div>
+          </div>
+          <dl class="return-facts">
+            <div>
+              <dt>Pack score</dt>
+              <dd id="return-pack-score">0</dd>
+            </div>
+            <div>
+              <dt>Protection</dt>
+              <dd id="return-protection">0</dd>
+            </div>
+            <div>
+              <dt>Box</dt>
+              <dd id="return-box">Medium</dd>
+            </div>
+            <div class="return-facts-wide">
+              <dt>Used</dt>
+              <dd id="return-materials">Bubble x0 · Paper Fill x0</dd>
+            </div>
+            <div class="return-facts-wide">
+              <dt>Cause</dt>
+              <dd id="return-cause">Insufficient protection</dd>
+            </div>
+            <div class="return-facts-refund">
+              <dt>Refund</dt>
+              <dd id="return-refund">-$0.00</dd>
+            </div>
+          </dl>
+          <p class="return-tip">Wrap fragile items before the next ship — returns teach, they don’t just punish.</p>
+          <button id="return-resolve" class="pack-btn" type="button">SEND REFUND</button>
+        </div>
+      </div>
+
+      <div id="daily-overlay" class="overlay daily-overlay" aria-hidden="true">
+        <div class="daily-sheet" role="dialog" aria-labelledby="daily-title" aria-modal="true">
+          <header class="daily-head">
+            <div>
+              <p class="daily-kicker">Today</p>
+              <h2 id="daily-title">Daily Challenge</h2>
+            </div>
+            <button id="daily-close" class="icon-btn" type="button" aria-label="Close daily challenge">
+              ✕
+            </button>
+          </header>
+          <p id="daily-icon" class="daily-icon" aria-hidden="true">🎯</p>
+          <p id="daily-blurb" class="daily-blurb">Ship carefully to complete today’s goal.</p>
+          <dl class="daily-facts">
+            <div>
+              <dt>Progress</dt>
+              <dd id="daily-progress">0 / 3</dd>
+            </div>
+            <div>
+              <dt>Reward</dt>
+              <dd id="daily-reward">$0 · +0 XP</dd>
+            </div>
+            <div class="daily-facts-wide">
+              <dt>Streak</dt>
+              <dd id="daily-streak">🔥 Start a streak</dd>
+            </div>
+            <div class="daily-facts-wide">
+              <dt>Status</dt>
+              <dd id="daily-status">In progress</dd>
+            </div>
+          </dl>
+          <button id="daily-claim" class="pack-btn" type="button" hidden>
+            CLAIM REWARD
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="drag-layer" class="drag-layer" aria-hidden="true"></div>
+    <div id="confetti" class="confetti" aria-hidden="true"></div>
+    <script src="game.js"></script>
+  </body>
+</html>
